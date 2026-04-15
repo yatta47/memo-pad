@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Kafka Topic設計パターン比較</title>
+<style>
+:root {
+  --bg: #0e1116;
+  --panel: #151b23;
+  --panel-2: #1c232d;
+  --border: #2a3340;
+  --fg: #e6edf3;
+  --muted: #8b949e;
+  --accent: #58a6ff;
+  --accent-2: #a371f7;
+  --producer: #3fb950;
+  --topic: #d29922;
+  --consumer: #58a6ff;
+  --warn: #f85149;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+  line-height: 1.6;
+  padding: 32px 24px;
+}
+header {
+  max-width: 1400px;
+  margin: 0 auto 24px;
+}
+h1 {
+  margin: 0 0 8px;
+  font-size: 26px;
+  font-weight: 700;
+}
+.subtitle {
+  color: var(--muted);
+  font-size: 14px;
+  margin: 0;
+}
+.grid {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.card-header {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 10px;
+}
+.card-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 4px;
+  color: var(--accent);
+}
+.card-sub {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 0;
+}
+.diagram {
+  background: var(--panel-2);
+  border-radius: 6px;
+  padding: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+}
+.diagram svg { max-width: 100%; height: auto; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+th, td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+th {
+  color: var(--muted);
+  font-weight: 500;
+  width: 32%;
+  background: var(--panel-2);
+}
+td code {
+  background: var(--panel-2);
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 12px;
+  color: var(--accent-2);
+}
+.guide {
+  max-width: 1400px;
+  margin: 24px auto 0;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+}
+.guide h2 {
+  margin: 0 0 12px;
+  font-size: 17px;
+  color: var(--accent);
+}
+.guide ul { margin: 0; padding-left: 20px; }
+.guide li { margin-bottom: 6px; }
+.tag {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 11px;
+  border-radius: 10px;
+  margin-right: 4px;
+}
+.tag-good { background: rgba(63, 185, 80, 0.15); color: var(--producer); }
+.tag-bad { background: rgba(248, 81, 73, 0.15); color: var(--warn); }
+.mental-model {
+  max-width: 1400px;
+  margin: 24px auto 0;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px 24px;
+}
+.mental-model > h2 {
+  margin: 0 0 16px;
+  font-size: 17px;
+  color: var(--accent);
+}
+.mm-card {
+  border-top: 1px solid var(--border);
+  padding: 16px 0;
+}
+.mm-card:first-of-type { border-top: none; padding-top: 4px; }
+.mm-card h3 {
+  margin: 0 0 10px;
+  font-size: 15px;
+  color: var(--fg);
+}
+.mm-think, .mm-apply {
+  background: var(--panel-2);
+  border-radius: 6px;
+  padding: 12px 14px;
+}
+.mm-think { border-left: 3px solid var(--accent-2); }
+.mm-apply { margin-top: 12px; border-left: 3px solid var(--topic); }
+.mm-think h4, .mm-apply h4 {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.mm-think p, .mm-think ul, .mm-think ol,
+.mm-apply p, .mm-apply ul { margin: 0 0 8px; font-size: 13px; }
+.mm-think p:last-child, .mm-think ul:last-child, .mm-think ol:last-child,
+.mm-apply p:last-child, .mm-apply ul:last-child { margin-bottom: 0; }
+.mm-think ul, .mm-think ol, .mm-apply ul { padding-left: 20px; }
+.mm-think li, .mm-apply li { margin-bottom: 4px; }
+.compare {
+  margin: 8px 0;
+  font-size: 12px;
+}
+.compare th, .compare td { padding: 6px 8px; }
+.compare th:first-child { width: 20%; }
+@media (max-width: 960px) {
+  .grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Kafka Topic設計パターン比較</h1>
+  <p class="subtitle">Entity / Aggregate / Bounded Context / Envelope の4パターンを比較。粒度・スキーマ影響範囲・運用コストの違いを一覧。</p>
+</header>
+
+<div class="grid">
+
+  <!-- Pattern 1: Topic per Entity -->
+  <section class="card">
+    <div class="card-header">
+      <h2 class="card-title">1. Topic per Entity</h2>
+      <p class="card-sub">エンティティ単位で1 topic。最も細かい粒度。</p>
+    </div>
+    <div class="diagram">
+      <svg viewBox="0 0 440 180" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arrow1" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L9,3 z" fill="#8b949e"/>
+          </marker>
+        </defs>
+        <!-- Producer -->
+        <rect x="10" y="30" width="90" height="36" rx="4" fill="#1c232d" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="55" y="53" text-anchor="middle" fill="#e6edf3" font-size="12" font-family="monospace">UserService</text>
+        <rect x="10" y="110" width="90" height="36" rx="4" fill="#1c232d" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="55" y="133" text-anchor="middle" fill="#e6edf3" font-size="12" font-family="monospace">OrderService</text>
+        <!-- Topics -->
+        <rect x="170" y="20" width="110" height="30" rx="4" fill="#1c232d" stroke="#d29922" stroke-width="1.5"/>
+        <text x="225" y="40" text-anchor="middle" fill="#e6edf3" font-size="11" font-family="monospace">users</text>
+        <rect x="170" y="65" width="110" height="30" rx="4" fill="#1c232d" stroke="#d29922" stroke-width="1.5"/>
+        <text x="225" y="85" text-anchor="middle" fill="#e6edf3" font-size="11" font-family="monospace">orders</text>
+        <rect x="170" y="110" width="110" height="30" rx="4" fill="#1c232d" stroke="#d29922" stroke-width="1.5"/>
+        <text x="225" y="130" text-anchor="middle" fill="#e6edf3" font-size="11" font-family="monospace">order-items</text>
+        <rect x="170" y="155" width="110" height="20" rx="4" fill="#1c232d" stroke="#d29922" stroke-width="1" stroke-dasharray="3,2"/>
+        <text x="225" y="169" text-anchor="middle" fill="#8b949e" font-size="10" font-family="monospace">... (many)</text>
+        <!-- Consumer -->
+        <rect x="340" y="70" width="90" height="36" rx="4" fill="#1c232d" stroke="#58a6ff" stroke-width="1.5"/>
+        <text x="385" y="93" text-anchor="middle" fill="#e6edf3" font-size="12" font-family="monospace">Analytics</text>
+        <!-- Arrows -->
+        <line x1="100" y1="48" x2="170" y2="35" stroke="#8b949e" stroke-width="1.2" marker-end="url(#arrow1)"/>
+        <line x1="100" y1="128" x2="170" y2="80" stroke="#8b949e" stroke-width="1.2" marker-end="url(#arrow1)"/>
+        <line x1="100" y1="128" x2="170" y2="125" stroke="#8b949e" stroke-width="1.2" marker-end="url(#arrow1)"/>
+        <line x1="280" y1="35" x2="340" y2="82" stroke="#8b949e" stroke-width="1.2" marker-end="url(#arrow1)"/>
+        <line x1="280" y1="80" x2="340" y2="86" stroke="#8b949e" stroke-width="1.2" marker-end="url(#arrow1)"/>
+        <line x1="280" y1="125" x2="340" y2="94" stroke="#8b949e" stroke-width="1.2" marker-end="url(#arrow1)"/>
+      </svg>
+    </div>
+    <table>
+      <tr><th>粒度</th><td>エンティティ単位（最細）</td></tr>
+      <tr><th>典型例</th><td><code>users</code> / <code>orders</code> / <code>products</code></td></tr>
+      <tr><th>得意</th><td><span class="tag tag-good">単純</span>consumer側で必要なtopicだけ購読可</td></tr>
+      <tr><th>苦手</th><td><span class="tag tag-bad">topic爆発</span>エンティティ数で増殖、数百〜数千になる</td></tr>
+      <tr><th>スキーマ影響</th><td>topic単位で閉じる。進化が独立</td></tr>
+      <tr><th>運用コスト</th><td>高（数が多いとACL・監視対象が増える）</td></tr>
+    </table>
+  </section>
+
+  <!-- Pattern 2: Topic per Aggregate -->
+  <section class="card">
+    <div class="card-header">
+      <h2 class="card-title">2. Topic per Aggregate</h2>
+      <p class="card-sub">DDD集約ルート単位。関連エンティティを1 topicに束ねる。</p>
+    </div>
+    <div class="diagram">
+      <svg viewBox="0 0 440 180" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arrow2" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L9,3 z" fill="#8b949e"/>
+          </marker>
+        </defs>
+        <!-- Producer -->
+        <rect x="10" y="70" width="100" height="44" rx="4" fill="#1c232d" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="60" y="90" text-anchor="middle" fill="#e6edf3" font-size="12" font-family="monospace">OrderService</text>
+        <text x="60" y="105" text-anchor="middle" fill="#8b949e" font-size="10">(aggregate root)</text>
+        <!-- Topic (aggregate) -->
+        <rect x="165" y="40" width="130" height="100" rx="6" fill="#1c232d" stroke="#d29922" stroke-width="1.5"/>
+        <text x="230" y="60" text-anchor="middle" fill="#e6edf3" font-size="12" font-family="monospace" font-weight="bold">order-aggregate</text>
+        <line x1="175" y1="70" x2="285" y2="70" stroke="#2a3340" stroke-width="1"/>
+        <text x="230" y="88" text-anchor="middle" fill="#8b949e" font-size="10">OrderCreated</text>
+        <text x="230" y="104" text-anchor="middle" fill="#8b949e" font-size="10">OrderItemAdded</text>
+        <text x="230" y="120" text-anchor="middle" fill="#8b949e" font-size="10">OrderPaid</text>
+        <text x="230" y="136" text-anchor="middle" fill="#8b949e" font-size="10">OrderShipped</text>
+        <!-- Consumer -->
+        <rect x="350" y="50" width="80" height="32" rx="4" fill="#1c232d" stroke="#58a6ff" stroke-width="1.5"/>
+        <text x="390" y="70" text-anchor="middle" fill="#e6edf3" font-size="11" font-family="monospace">Shipping</text>
+        <rect x="350" y="100" width="80" height="32" rx="4" fill="#1c232d" stroke="#58a6ff" stroke-width="1.5"/>
+        <text x="390" y="120" text-anchor="middle" fill="#e6edf3" font-size="11" font-family="monospace">Billing</text>
+        <!-- Arrows -->
+        <line x1="110" y1="92" x2="165" y2="90" stroke="#8b949e" stroke-width="1.2" marker-end="url(#arrow2)"/>
+        <line x1="295" y1="75" x2="350" y2="66" stroke="#8b949e" stroke-width="1.2" marker-end="url(#arrow2)"/>
+        <line x1="295" y1="105" x2="350" y2="116" stroke="#8b949e" stroke-width="1.2" marker-end="url(#arrow2)"/>
+      </svg>
+    </div>
+    <table>
+      <tr><th>粒度</th><td>集約ルート単位（中）</td></tr>
+      <tr><th>典型例</th><td><code>order-aggregate</code> / <code>customer-aggregate</code></td></tr>
+      <tr><th>得意</th><td><span class="tag tag-good">順序保証</span>同一集約内のイベントが順序維持（keyにaggregate ID）</td></tr>
+      <tr><th>苦手</th><td><span class="tag tag-bad">設計力</span>集約境界の切り方で良し悪しが決まる</td></tr>
+      <tr><th>スキーマ影響</th><td>集約内のイベント型は同一topicで進化させる必要</td></tr>
+      <tr><th>運用コスト</th><td>中（topic数は適度、DDDが前提知識）</td></tr>
+    </table>
+  </section>
+
+  <!-- Pattern 3: Topic per Bounded Context (Namespaced) -->
+  <section class="card">
+    <div class="card-header">
+      <h2 class="card-title">3. Topic per Bounded Context</h2>
+      <p class="card-sub">BC単位でprefixを共有する<strong>複数topic</strong>。consumerはregex subscribe（<code>payment.*</code>）で束ねる。</p>
+    </div>
+    <div class="diagram">
+      <svg viewBox="0 0 440 200" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arrow3" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L9,3 z" fill="#8b949e"/>
+          </marker>
+        </defs>
+        <!-- Context: Payment -->
+        <rect x="6" y="8" width="110" height="184" rx="6" fill="none" stroke="#3fb950" stroke-width="1.2" stroke-dasharray="4,3"/>
+        <text x="16" y="24" fill="#3fb950" font-size="10" font-family="monospace">[ Payment BC ]</text>
+        <rect x="16" y="36" width="90" height="28" rx="4" fill="#1c232d" stroke="#3fb950" stroke-width="1"/>
+        <text x="61" y="54" text-anchor="middle" fill="#e6edf3" font-size="10">ChargeSvc</text>
+        <rect x="16" y="74" width="90" height="28" rx="4" fill="#1c232d" stroke="#3fb950" stroke-width="1"/>
+        <text x="61" y="92" text-anchor="middle" fill="#e6edf3" font-size="10">RefundSvc</text>
+        <!-- Multiple topics under payment.* -->
+        <rect x="150" y="14" width="150" height="26" rx="4" fill="#1c232d" stroke="#d29922" stroke-width="1.3"/>
+        <text x="225" y="31" text-anchor="middle" fill="#e6edf3" font-size="10" font-family="monospace">payment.charge.completed</text>
+        <rect x="150" y="48" width="150" height="26" rx="4" fill="#1c232d" stroke="#d29922" stroke-width="1.3"/>
+        <text x="225" y="65" text-anchor="middle" fill="#e6edf3" font-size="10" font-family="monospace">payment.charge.failed</text>
+        <rect x="150" y="82" width="150" height="26" rx="4" fill="#1c232d" stroke="#d29922" stroke-width="1.3"/>
+        <text x="225" y="99" text-anchor="middle" fill="#e6edf3" font-size="10" font-family="monospace">payment.refund.issued</text>
+        <rect x="150" y="116" width="150" height="26" rx="4" fill="#1c232d" stroke="#d29922" stroke-width="1.3"/>
+        <text x="225" y="133" text-anchor="middle" fill="#e6edf3" font-size="10" font-family="monospace">payment.refund.denied</text>
+        <rect x="150" y="150" width="150" height="18" rx="4" fill="#1c232d" stroke="#d29922" stroke-width="1" stroke-dasharray="3,2"/>
+        <text x="225" y="163" text-anchor="middle" fill="#8b949e" font-size="9" font-family="monospace">payment.* (more)</text>
+        <!-- BC-level grouping bracket -->
+        <path d="M 142 14 Q 138 14 138 20 L 138 162 Q 138 168 142 168" fill="none" stroke="#a371f7" stroke-width="1" stroke-dasharray="3,2"/>
+        <text x="125" y="94" text-anchor="end" fill="#a371f7" font-size="9" font-family="monospace" transform="rotate(-90 125 94)">payment.* prefix</text>
+        <!-- Consumer with regex subscribe -->
+        <rect x="340" y="70" width="94" height="58" rx="4" fill="#1c232d" stroke="#58a6ff" stroke-width="1.5"/>
+        <text x="387" y="88" text-anchor="middle" fill="#e6edf3" font-size="11" font-family="monospace">Consumer</text>
+        <line x1="348" y1="95" x2="426" y2="95" stroke="#2a3340" stroke-width="1"/>
+        <text x="387" y="109" text-anchor="middle" fill="#a371f7" font-size="9" font-family="monospace">subscribe:</text>
+        <text x="387" y="122" text-anchor="middle" fill="#a371f7" font-size="9" font-family="monospace">/^payment\..* /</text>
+        <!-- Arrows: services → topics -->
+        <line x1="106" y1="50" x2="150" y2="28" stroke="#8b949e" stroke-width="1" marker-end="url(#arrow3)"/>
+        <line x1="106" y1="50" x2="150" y2="60" stroke="#8b949e" stroke-width="1" marker-end="url(#arrow3)"/>
+        <line x1="106" y1="88" x2="150" y2="94" stroke="#8b949e" stroke-width="1" marker-end="url(#arrow3)"/>
+        <line x1="106" y1="88" x2="150" y2="128" stroke="#8b949e" stroke-width="1" marker-end="url(#arrow3)"/>
+        <!-- Arrows: topics → consumer (via regex) -->
+        <line x1="300" y1="28" x2="340" y2="85" stroke="#8b949e" stroke-width="1" marker-end="url(#arrow3)"/>
+        <line x1="300" y1="60" x2="340" y2="92" stroke="#8b949e" stroke-width="1" marker-end="url(#arrow3)"/>
+        <line x1="300" y1="94" x2="340" y2="100" stroke="#8b949e" stroke-width="1" marker-end="url(#arrow3)"/>
+        <line x1="300" y1="128" x2="340" y2="108" stroke="#8b949e" stroke-width="1" marker-end="url(#arrow3)"/>
+      </svg>
+    </div>
+    <table>
+      <tr><th>粒度</th><td>1 BC = 複数topic（prefix共有）</td></tr>
+      <tr><th>典型例</th><td><code>payment.charge.completed</code>, <code>payment.refund.issued</code> → <code>payment.*</code> で束ねる</td></tr>
+      <tr><th>得意</th><td><span class="tag tag-good">境界明確</span>topic所有者 = BCチームで一致。consumerは必要な部分集合だけregex選択可</td></tr>
+      <tr><th>苦手</th><td><span class="tag tag-bad">命名規約依存</span>prefix命名の統制が崩れると検索性が落ちる</td></tr>
+      <tr><th>スキーマ影響</th><td>BC内で命名・スキーマ規約を統一。チーム単位の契約管理</td></tr>
+      <tr><th>運用コスト</th><td>中（topic数は増えるがBC内に閉じる、ACLもprefix単位で制御可能）</td></tr>
+    </table>
+  </section>
+
+  <!-- Pattern 4: Envelope Topic -->
+  <section class="card">
+    <div class="card-header">
+      <h2 class="card-title">4. Envelope Topic</h2>
+      <p class="card-sub">複数イベント型を1 topicに。<code>event_type</code>フィールドで分岐。</p>
+    </div>
+    <div class="diagram">
+      <svg viewBox="0 0 440 180" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arrow4" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L9,3 z" fill="#8b949e"/>
+          </marker>
+        </defs>
+        <!-- Producer -->
+        <rect x="10" y="70" width="90" height="44" rx="4" fill="#1c232d" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="55" y="90" text-anchor="middle" fill="#e6edf3" font-size="12" font-family="monospace">Order</text>
+        <text x="55" y="105" text-anchor="middle" fill="#8b949e" font-size="10">Service</text>
+        <!-- Envelope Topic -->
+        <rect x="150" y="30" width="160" height="130" rx="6" fill="#1c232d" stroke="#a371f7" stroke-width="1.8"/>
+        <text x="230" y="50" text-anchor="middle" fill="#e6edf3" font-size="12" font-family="monospace" font-weight="bold">order-events</text>
+        <line x1="160" y1="58" x2="300" y2="58" stroke="#2a3340" stroke-width="1"/>
+        <rect x="160" y="66" width="140" height="20" rx="3" fill="#0e1116" stroke="#2a3340"/>
+        <text x="168" y="80" fill="#8b949e" font-size="9" font-family="monospace">event_type:"Created"</text>
+        <rect x="160" y="92" width="140" height="20" rx="3" fill="#0e1116" stroke="#2a3340"/>
+        <text x="168" y="106" fill="#8b949e" font-size="9" font-family="monospace">event_type:"Paid"</text>
+        <rect x="160" y="118" width="140" height="20" rx="3" fill="#0e1116" stroke="#2a3340"/>
+        <text x="168" y="132" fill="#8b949e" font-size="9" font-family="monospace">event_type:"Shipped"</text>
+        <rect x="160" y="144" width="140" height="12" rx="3" fill="#0e1116" stroke="#2a3340" stroke-dasharray="2,2"/>
+        <text x="230" y="153" text-anchor="middle" fill="#8b949e" font-size="9">...</text>
+        <!-- Consumer with filter -->
+        <rect x="350" y="60" width="80" height="60" rx="4" fill="#1c232d" stroke="#58a6ff" stroke-width="1.5"/>
+        <text x="390" y="80" text-anchor="middle" fill="#e6edf3" font-size="11" font-family="monospace">Consumer</text>
+        <text x="390" y="96" text-anchor="middle" fill="#f85149" font-size="9">filter by</text>
+        <text x="390" y="108" text-anchor="middle" fill="#f85149" font-size="9">event_type</text>
+        <!-- Arrows -->
+        <line x1="100" y1="92" x2="150" y2="92" stroke="#8b949e" stroke-width="1.2" marker-end="url(#arrow4)"/>
+        <line x1="310" y1="90" x2="350" y2="90" stroke="#8b949e" stroke-width="1.2" marker-end="url(#arrow4)"/>
+      </svg>
+    </div>
+    <table>
+      <tr><th>粒度</th><td>1 topicに多型イベント</td></tr>
+      <tr><th>典型例</th><td><code>order-events</code>（<code>event_type</code>で分岐）</td></tr>
+      <tr><th>得意</th><td><span class="tag tag-good">順序完全保証</span>全イベント型がグローバル順序維持</td></tr>
+      <tr><th>苦手</th><td><span class="tag tag-bad">消費効率</span>consumerが不要なイベント型もfetch・filter必要</td></tr>
+      <tr><th>スキーマ影響</th><td>Envelope（共通外殻）+ polymorphic payload設計が必須</td></tr>
+      <tr><th>運用コスト</th><td>低（topic数最小）、ただしスキーマ設計コスト高</td></tr>
+    </table>
+  </section>
+
+</div>
+
+<section class="mental-model">
+  <h2>パターンの考え方と適用場面</h2>
+
+  <article class="mm-card">
+    <h3>1. Topic per Entity</h3>
+    <div class="mm-think">
+      <h4>考え方</h4>
+      <p>DBのテーブル設計の考えを Kafka に持ち込んだパターン。<strong>イベント駆動というよりデータ駆動（state-oriented）</strong>で、Kafka を RDB の CDC/レプリカとして使う構造になりがち。</p>
+      <p>Compacted Topic + Debezium の組み合わせが典型例。CDC（Change Data Capture）で自動生成される topic はほぼ全て Entity 単位になるため、このパターンは既存DBから自然に生まれやすい。</p>
+    </div>
+    <div class="mm-apply">
+      <h4>業務アーキテクチャから見た適用場面</h4>
+      <ul>
+        <li><strong>マスタデータ配布基盤</strong>: Customer master / Product catalog など、単一 Entity の最新状態を複数の下流システムに配布したい</li>
+        <li><strong>既存システムの段階的イベント化</strong>: 既存の CRUD/RDB ベースのシステムに手を入れず、Debezium 等の CDC で自動的に entity 単位の topic を生やす</li>
+        <li><strong>データレイク / DWH 連携</strong>: 各 Entity の変更履歴をそのまま分析基盤に流し込む</li>
+        <li><strong>Compacted Topic による参照用ストア</strong>: Kafka を「常に最新状態が取れるレプリカDB」として使うケース</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="mm-card">
+    <h3>2. Topic per Aggregate</h3>
+    <div class="mm-think">
+      <h4>考え方</h4>
+      <p><strong>DDD = Domain-Driven Design</strong>（Eric Evans 2003）のAggregate単位で切るパターン。「ドメイン（業務領域）駆動設計」で、Aggregate（集約）は「一貫性を保つ単位」を指す。例えば Order と OrderItem は別 entity だが「Order 集約」として一塊で扱う。</p>
+      <p>一見 consumer の filter 負担が大きそうに見えるが、<strong>同一 aggregate 内のイベントは key = aggregate ID で順序保証される</strong>。<code>OrderCreated → OrderItemAdded → OrderPaid → OrderShipped</code> が順番通りに届き、consumer は必要な event_type だけ反応すればよい。filter 問題はむしろ Envelope の方が重い。</p>
+      <p><strong>本命の利点は「順序保証」と「Outbox Pattern との親和性」</strong>。Producer 側が1集約の変更を1 topic に閉じて書けるので、DBトランザクションと Kafka 送信の整合性が取りやすい。</p>
+    </div>
+    <div class="mm-apply">
+      <h4>業務アーキテクチャから見た適用場面</h4>
+      <ul>
+        <li><strong>業務トランザクションの外部通知</strong>: 1集約（Order / Invoice / Subscription 等）の状態遷移を順序保証で下流に伝えたい</li>
+        <li><strong>Outbox Pattern との組み合わせ</strong>: DB書き込みと Kafka 送信の整合性を担保したいとき第一候補（outbox テーブル 1集約単位 → aggregate topic）</li>
+        <li><strong>Saga Pattern の実装基盤</strong>: 集約単位で分散トランザクションを組み、補償イベントも同じ topic で扱う</li>
+        <li><strong>DDDベースの業務システム</strong>: ドメインモデルが集約で綺麗に切れている、または切ろうとしている組織。集約境界 = topic 境界で整合する</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="mm-card">
+    <h3>3. Topic per Bounded Context</h3>
+    <div class="mm-think">
+      <h4>考え方</h4>
+      <p>ビジネス境界線（Bounded Context）で切るパターン。「支払処理.完了」のようにドットでつないだ形が日本語でも直感的で、実務では ASCII に落として <code>payment.charge.completed</code> のような命名が標準。</p>
+      <ul>
+        <li>各イベントが独立した topic</li>
+        <li>consumer は <code>/^payment\..*/ </code> のような regex で必要な部分集合だけ購読</li>
+        <li>チーム所有も prefix 単位で明確（ACL も prefix で制御可能）</li>
+      </ul>
+      <p><strong>4パターンの中で「イベント駆動」の感覚が一番強く出る</strong>のがこのパターン。チーム境界と topic 境界を揃えたい組織で現実解になりやすい。</p>
+    </div>
+    <div class="mm-apply">
+      <h4>業務アーキテクチャから見た適用場面</h4>
+      <ul>
+        <li><strong>マイクロサービス間でデータを複数活用したいとき</strong>: ある BC のイベントを他の複数 BC が部分的に購読して活用する。疎結合で横串の連携を取るケース</li>
+        <li><strong>チーム構造とシステム構造を一致させたい組織</strong>: Conway's Law と整合。各 BC チームが自分の topic 群の契約を主権的に管理できる</li>
+        <li><strong>API 直接呼び出しからイベント駆動へ移行したいとき</strong>: 従来の同期 REST 連携を非同期に置き換え、可用性・疎結合性を上げる</li>
+        <li><strong>下流システムごとに必要な部分集合が違う場合</strong>: 分析系は <code>payment.*</code> を全部、通知系は <code>payment.charge.*</code> だけ、のように regex subscribe で切り分けられる</li>
+        <li><strong>ACL・所有権を BC 単位で管理したい運用要件</strong>: prefix ベースで権限制御しやすく、責任境界が明確</li>
+      </ul>
+    </div>
+  </article>
+
+  <article class="mm-card">
+    <h3>4. Envelope Topic（Aggregateとの違いが重要）</h3>
+    <div class="mm-think">
+      <h4>考え方</h4>
+      <p>Aggregate と構造（1 topic に複数 event type）は似ているが、<strong>境界の切り方が違う</strong>。</p>
+      <table class="compare">
+        <tr><th></th><th>Aggregate Topic</th><th>Envelope Topic</th></tr>
+        <tr><th>境界の論理</th><td>DDDの一貫性境界</td><td>「全体の順序が欲しい」という業務要件</td></tr>
+        <tr><th>典型サイズ</th><td>小〜中（1集約、数〜十数種のevent）</td><td>大（数十〜百種、複数集約横断）</td></tr>
+        <tr><th>key設計</th><td>aggregate ID</td><td>entity ID や無指定（順序優先）</td></tr>
+        <tr><th>順序保証範囲</th><td>1 aggregate 内</td><td>topic全体（同一 partition 内）</td></tr>
+        <tr><th>典型用途</th><td>業務イベント</td><td>監査ログ・金融取引・Event Sourcing永続ログ</td></tr>
+      </table>
+      <p><strong>Envelope の本命は「全イベントのグローバル順序が業務要件」なとき</strong>: 金融取引の監査証跡、コンプライアンス用の操作ログ、Event Sourcing の永続ログなど。</p>
+      <p style="color: var(--muted); font-size: 12px; padding-top: 4px; border-top: 1px dashed var(--border);">※ Kafka→Kafka でフィルタして個別 topic に振り分けるのは <strong>Topic設計ではなく Routing Pattern</strong> の話。ただし実務では Envelope + Routing のハイブリッドがよく使われる:</p>
+      <ol style="color: var(--muted); font-size: 12px;">
+        <li>Producer → Envelope topic（例: <code>all-events</code>）</li>
+        <li>Kafka Streams / Kafka Connect で event_type ごとに split → 個別 topic（例: <code>events.order.paid</code>）</li>
+        <li>下流 consumer は個別 topic を購読</li>
+      </ol>
+      <p style="color: var(--muted); font-size: 12px;">これは「全順序維持 + consumer の扱いやすさ」を両立するパターン。Envelope の弱点（consumer の filter 負担）を Stream Processing で吸収する。</p>
+    </div>
+    <div class="mm-apply">
+      <h4>業務アーキテクチャから見た適用場面</h4>
+      <ul>
+        <li><strong>監査・コンプライアンス基盤</strong>: 全操作の時系列追跡が業務要件。誰が何をいつしたかを順序保証で記録する</li>
+        <li><strong>金融取引・会計システム</strong>: 全イベントのグローバル順序が法令・監査要件として必須</li>
+        <li><strong>Event Sourcing の永続ログ</strong>: アプリの状態再構築に使う真実のログとして、順序と完全性が最重要</li>
+        <li><strong>SIEM / 操作ログ基盤</strong>: 複数サービスの操作を1タイムラインで分析したい。時系列そのものがプロダクトになる用途</li>
+        <li><strong>IoT / テレメトリ集約</strong>: 大量のセンサーイベントを時系列で一次集約し、下流で Stream Processing（Routing Pattern）で振り分けるハブとして使う</li>
+      </ul>
+    </div>
+  </article>
+</section>
+
+<section class="guide">
+  <h2>選び方ガイド</h2>
+  <ul>
+    <li><strong>Entity</strong>: PoC・小規模、各エンティティが独立して進化するケース。CDC で自動生成する topic もここに該当。大規模では topic 数で破綻するので避ける</li>
+    <li><strong>Aggregate</strong>: DDD を実践している組織。集約ルートのイベントを順序保証したいとき第一候補。Outbox Pattern との相性が良い</li>
+    <li><strong>Bounded Context</strong>: マイクロサービス境界と topic 所有を一致させたい運用寄り設計。チーム所有の明確さと運用負荷のバランスが良く、<strong>多くの組織で現実解</strong>になりやすい</li>
+    <li><strong>Envelope</strong>: 全イベントのグローバル順序が必須な業務（監査ログ、金融取引、Event Sourcing）。スキーマ設計コストを受け入れる前提</li>
+  </ul>
+  <p style="color: var(--muted); font-size: 12px; margin-top: 12px;">混在も可。例: Bounded Context を基本、特定領域（監査）だけ Envelope。最初から綺麗に分類せず、運用で困ったら分離・統合する方針が現実的。</p>
+</section>
+
+</body>
+</html>
