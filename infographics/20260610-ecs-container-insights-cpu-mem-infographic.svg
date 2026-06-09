@@ -1,0 +1,153 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="2180" viewBox="0 0 1400 2180" font-family="'Noto Sans JP','Hiragino Sans','Yu Gothic',sans-serif">
+  <defs>
+    <linearGradient id="hdr" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b3a82"/>
+      <stop offset="1" stop-color="#1d4ed8"/>
+    </linearGradient>
+    <filter id="card" x="-2%" y="-2%" width="104%" height="108%">
+      <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.12"/>
+    </filter>
+  </defs>
+
+  <!-- background -->
+  <rect width="1400" height="2180" fill="#f1f5f9"/>
+
+  <!-- ===== Header ===== -->
+  <rect x="0" y="0" width="1400" height="150" fill="url(#hdr)"/>
+  <text x="60" y="74" fill="#ffffff" font-size="44" font-weight="700">ECS Container Insights ― アプリのCPU/MEMはどこで見る？</text>
+  <text x="60" y="118" fill="#bfdbfe" font-size="24">「Serviceで見るとTaskより高い」の正体と、health / sizing の見るべき値</text>
+
+  <!-- ===== 結論 3行 ===== -->
+  <g filter="url(#card)">
+    <rect x="60" y="186" width="1280" height="232" rx="14" fill="#ffffff"/>
+  </g>
+  <rect x="60" y="186" width="10" height="232" rx="5" fill="#1d4ed8"/>
+  <text x="92" y="232" fill="#0f172a" font-size="28" font-weight="700">結論 ― 混乱の正体は「2系統のメトリクスを混ぜて見ている」こと</text>
+  <text x="92" y="284" fill="#1e293b" font-size="23">① 日常の<tspan font-weight="700" fill="#1d4ed8">正常性（health）</tspan>は <tspan font-family="monospace" font-weight="700">AWS/ECS</tspan> の比率系（%）を <tspan font-weight="700">Service・Average</tspan> で見る。台数が増減しても安定。</text>
+  <text x="92" y="328" fill="#1e293b" font-size="23">② <tspan font-weight="700" fill="#d97706">サイジング</tspan>は <tspan font-family="monospace" font-weight="700">ECS/ContainerInsights</tspan> の実量系（units / MiB）を <tspan font-weight="700">TaskId・p95/Max</tspan> で Reserved と比較。</text>
+  <text x="92" y="372" fill="#1e293b" font-size="23">③ 「Serviceが高く見える」は <tspan font-weight="700">Sum統計</tspan> か <tspan font-weight="700">系統の混在</tspan> が原因。バグではない。</text>
+
+  <!-- ===== 2系統の対比 ===== -->
+  <text x="60" y="470" fill="#0f172a" font-size="26" font-weight="700">2つの別系統 ― 見る場面が違う</text>
+
+  <!-- 左: AWS/ECS -->
+  <g filter="url(#card)"><rect x="60" y="492" width="625" height="300" rx="14" fill="#ffffff"/></g>
+  <rect x="60" y="492" width="625" height="58" rx="14" fill="#1d4ed8"/>
+  <rect x="60" y="520" width="625" height="30" fill="#1d4ed8"/>
+  <text x="86" y="530" fill="#ffffff" font-size="24" font-weight="700" font-family="monospace">AWS/ECS</text>
+  <text x="660" y="530" fill="#bfdbfe" font-size="20" text-anchor="end">比率系（％）</text>
+  <text x="86" y="592" fill="#0f172a" font-size="22" font-weight="700">CPUUtilization / MemoryUtilization</text>
+  <text x="86" y="630" fill="#334155" font-size="20">使用量合計 ÷ 予約量合計 = 比率（%）</text>
+  <text x="86" y="664" fill="#334155" font-size="20">粒度は <tspan font-weight="700">ServiceName</tspan>。分子も分母も</text>
+  <text x="86" y="692" fill="#334155" font-size="20">台数で増えるので<tspan font-weight="700">%は安定</tspan>。</text>
+  <rect x="86" y="716" width="573" height="54" rx="8" fill="#eff6ff"/>
+  <text x="104" y="750" fill="#1d4ed8" font-size="21" font-weight="700">▶ 用途：日常の正常性監視（Average）</text>
+
+  <!-- 右: ContainerInsights -->
+  <g filter="url(#card)"><rect x="715" y="492" width="625" height="300" rx="14" fill="#ffffff"/></g>
+  <rect x="715" y="492" width="625" height="58" rx="14" fill="#d97706"/>
+  <rect x="715" y="520" width="625" height="30" fill="#d97706"/>
+  <text x="741" y="530" fill="#ffffff" font-size="24" font-weight="700" font-family="monospace">ECS/ContainerInsights</text>
+  <text x="1315" y="530" fill="#fde68a" font-size="20" text-anchor="end">実量系</text>
+  <text x="741" y="592" fill="#0f172a" font-size="22" font-weight="700">CpuUtilized / CpuReserved ほか</text>
+  <text x="741" y="630" fill="#334155" font-size="20">CPU units / MiB の<tspan font-weight="700">実量</tspan>（比率ではない）</text>
+  <text x="741" y="664" fill="#334155" font-size="20">TaskId で絞れば1タスクの生値。</text>
+  <text x="741" y="692" fill="#334155" font-size="20">ServiceName だけだと全タスクを平均。</text>
+  <rect x="741" y="716" width="573" height="54" rx="8" fill="#fff7ed"/>
+  <text x="759" y="750" fill="#d97706" font-size="21" font-weight="700">▶ 用途：サイジング（p95 / Max）</text>
+
+  <!-- ===== なぜServiceが高く見える ===== -->
+  <text x="60" y="852" fill="#0f172a" font-size="26" font-weight="700">なぜ「Serviceで見るとTaskより多い」のか ― 3つの原因</text>
+  <g filter="url(#card)"><rect x="60" y="874" width="410" height="210" rx="14" fill="#ffffff"/></g>
+  <circle cx="100" cy="918" r="22" fill="#fee2e2"/><text x="100" y="926" fill="#dc2626" font-size="24" font-weight="700" text-anchor="middle">1</text>
+  <text x="138" y="912" fill="#0f172a" font-size="22" font-weight="700">Sum統計を選んでいる</text>
+  <text x="86" y="958" fill="#334155" font-size="19">CpuUtilized を Service・Sum で</text>
+  <text x="86" y="986" fill="#334155" font-size="19">見ると全タスクの<tspan font-weight="700">合計</tspan>。</text>
+  <text x="86" y="1014" fill="#334155" font-size="19">3タスクなら約3倍に見える。</text>
+  <text x="86" y="1052" fill="#dc2626" font-size="19" font-weight="700">→ Average か TaskId 絞り</text>
+
+  <g filter="url(#card)"><rect x="495" y="874" width="410" height="210" rx="14" fill="#ffffff"/></g>
+  <circle cx="535" cy="918" r="22" fill="#fee2e2"/><text x="535" y="926" fill="#dc2626" font-size="24" font-weight="700" text-anchor="middle">2</text>
+  <text x="573" y="912" fill="#0f172a" font-size="22" font-weight="700">系統を混ぜている</text>
+  <text x="521" y="958" fill="#334155" font-size="19">%（AWS/ECS）と units</text>
+  <text x="521" y="986" fill="#334155" font-size="19">（Insights）は<tspan font-weight="700">単位が別次元</tspan>。</text>
+  <text x="521" y="1014" fill="#334155" font-size="19">30% と 300 を並べてしまう。</text>
+  <text x="521" y="1052" fill="#dc2626" font-size="19" font-weight="700">→ 同じグラフに乗せない</text>
+
+  <g filter="url(#card)"><rect x="930" y="874" width="410" height="210" rx="14" fill="#ffffff"/></g>
+  <circle cx="970" cy="918" r="22" fill="#fee2e2"/><text x="970" y="926" fill="#dc2626" font-size="24" font-weight="700" text-anchor="middle">3</text>
+  <text x="1008" y="912" fill="#0f172a" font-size="22" font-weight="700">TaskId未指定</text>
+  <text x="956" y="958" fill="#334155" font-size="19">実量を Service だけで見ると</text>
+  <text x="956" y="986" fill="#334155" font-size="19">AWSが全タスクを<tspan font-weight="700">Average</tspan>。</text>
+  <text x="956" y="1014" fill="#334155" font-size="19">1タスクの生値が欲しいなら</text>
+  <text x="956" y="1052" fill="#dc2626" font-size="19" font-weight="700">→ TaskId で絞る</text>
+
+  <!-- ===== health table ===== -->
+  <g filter="url(#card)"><rect x="60" y="1118" width="1280" height="318" rx="14" fill="#ffffff"/></g>
+  <rect x="60" y="1118" width="1280" height="52" rx="14" fill="#15803d"/>
+  <rect x="60" y="1144" width="1280" height="26" fill="#15803d"/>
+  <text x="90" y="1153" fill="#ffffff" font-size="24" font-weight="700">① 正常性（health）で見る最小セット</text>
+  <text x="1310" y="1153" fill="#bbf7d0" font-size="20" text-anchor="end">統計は Average 基本</text>
+  <!-- columns header -->
+  <text x="90"  y="1202" fill="#64748b" font-size="18" font-weight="700">メトリクス</text>
+  <text x="690" y="1202" fill="#64748b" font-size="18" font-weight="700">粒度</text>
+  <text x="900" y="1202" fill="#64748b" font-size="18" font-weight="700">目安</text>
+  <text x="1130" y="1202" fill="#64748b" font-size="18" font-weight="700">意味</text>
+  <line x1="90" y1="1214" x2="1310" y2="1214" stroke="#e2e8f0" stroke-width="1.5"/>
+  <!-- rows -->
+  <g font-size="19" fill="#1e293b">
+    <text x="90"  y="1248" font-family="monospace" font-weight="700">CPUUtilization</text>
+    <text x="690" y="1248">Service</text><text x="900" y="1248">&gt;80%警戒/90%警報</text><text x="1130" y="1248">スロットリング手前</text>
+    <line x1="90" y1="1264" x2="1310" y2="1264" stroke="#f1f5f9"/>
+    <text x="90"  y="1296" font-family="monospace" font-weight="700">MemoryUtilization</text>
+    <text x="690" y="1296">Service</text><text x="900" y="1296">&gt;85%警戒</text><text x="1130" y="1296">OOM手前</text>
+    <line x1="90" y1="1312" x2="1310" y2="1312" stroke="#f1f5f9"/>
+    <text x="90"  y="1344" font-family="monospace" font-weight="700">RunningTaskCount</text>
+    <text x="690" y="1344">Service</text><text x="900" y="1344">Desiredと乖離</text><text x="1130" y="1344">タスク落ちの直接検知</text>
+    <line x1="90" y1="1360" x2="1310" y2="1360" stroke="#f1f5f9"/>
+    <text x="90"  y="1392" font-family="monospace" font-weight="700">PendingTaskCount</text>
+    <text x="690" y="1392">Service</text><text x="900" y="1392">継続&gt;0</text><text x="1130" y="1392">配置不能（容量/ENI/制約）</text>
+    <line x1="90" y1="1408" x2="1310" y2="1408" stroke="#f1f5f9"/>
+    <text x="90"  y="1424" font-family="monospace" font-weight="700">RestartCount</text>
+    <text x="690" y="1424">Service/Task</text><text x="900" y="1424">増加トレンド</text><text x="1130" y="1424">再起動（OOM/HC失敗を横断）</text>
+  </g>
+
+  <!-- ===== sizing table ===== -->
+  <g filter="url(#card)"><rect x="60" y="1462" width="1280" height="246" rx="14" fill="#ffffff"/></g>
+  <rect x="60" y="1462" width="1280" height="52" rx="14" fill="#b45309"/>
+  <rect x="60" y="1488" width="1280" height="26" fill="#b45309"/>
+  <text x="90" y="1497" fill="#ffffff" font-size="24" font-weight="700">② サイジング（right-sizing）で見る最小セット</text>
+  <text x="1310" y="1497" fill="#fde68a" font-size="20" text-anchor="end">統計は p95 / Max</text>
+  <text x="90"  y="1546" fill="#64748b" font-size="18" font-weight="700">メトリクス（TaskId粒度）</text>
+  <text x="690" y="1546" fill="#64748b" font-size="18" font-weight="700">判断</text>
+  <line x1="90" y1="1558" x2="1310" y2="1558" stroke="#e2e8f0" stroke-width="1.5"/>
+  <g font-size="19" fill="#1e293b">
+    <text x="90"  y="1592" font-family="monospace" font-weight="700">CpuUtilized vs CpuReserved</text>
+    <text x="690" y="1592">p95 が Reserved の <tspan font-weight="700">70%以下 → CPU過剰割当</tspan>（下げ余地）</text>
+    <line x1="90" y1="1608" x2="1310" y2="1608" stroke="#f1f5f9"/>
+    <text x="90"  y="1640" font-family="monospace" font-weight="700">MemoryUtilized vs MemoryReserved</text>
+    <text x="690" y="1640">Max が Reserved の <tspan font-weight="700">80%超が常態 → OOMリスク</tspan>（上げる）</text>
+    <line x1="90" y1="1656" x2="1310" y2="1656" stroke="#f1f5f9"/>
+    <text x="90"  y="1688" font-family="monospace" font-weight="700">Fargate タスクサイズ</text>
+    <text x="690" y="1688">1024 units = 1 vCPU。<tspan font-weight="700">CpuUtilized p95 + 30%</tspan> をヘッドルームに</text>
+  </g>
+
+  <!-- ===== mnemonic banner ===== -->
+  <g filter="url(#card)"><rect x="60" y="1734" width="1280" height="84" rx="14" fill="#0f172a"/></g>
+  <text x="700" y="1772" fill="#ffffff" font-size="26" font-weight="700" text-anchor="middle">覚え方： <tspan fill="#86efac">health = Average</tspan>　／　<tspan fill="#fbbf24">sizing = p95 / Max</tspan></text>
+  <text x="700" y="1804" fill="#94a3b8" font-size="19" text-anchor="middle">平均はスパイク時のOOM/スロットリングを隠す。キャパ計画は必ず上振れを見る。</text>
+
+  <!-- ===== 落とし穴 ===== -->
+  <text x="60" y="1872" fill="#0f172a" font-size="26" font-weight="700">落とし穴 ― 誤読しやすい所</text>
+  <g filter="url(#card)"><rect x="60" y="1894" width="1280" height="216" rx="14" fill="#fef2f2"/></g>
+  <g font-size="20" fill="#7f1d1d">
+    <text x="90" y="1936"><tspan font-weight="700">⚠ Sumで実量を見る</tspan> → 台数増だけで「CPU上昇」と誤読</text>
+    <text x="90" y="1976"><tspan font-weight="700">⚠ EC2でmemoryReservation未設定</tspan> → 分母がインスタンス総量、OOM寸前でも低く見える</text>
+    <text x="90" y="2016"><tspan font-weight="700">⚠ RestartCountはrestart policy設定タスクのみ</tspan> → 無設定のクラッシュは出ない（EventBridge併用）</text>
+    <text x="90" y="2056"><tspan font-weight="700">⚠ enhanced observability(2024/12〜)で名前追加</tspan> → TaskCpu/MemoryUtilization(%)。組む前に有効か確認</text>
+    <text x="90" y="2096"><tspan font-weight="700">⚠ デプロイ中は旧+新タスクが両方RUNNING</tspan> → 一時的な増加は正常。DeploymentCount&gt;1で切り分け</text>
+  </g>
+
+  <!-- footer -->
+  <text x="60" y="2156" fill="#94a3b8" font-size="17">出典: AWS公式 ECS CloudWatch metrics / Container Insights metrics（"averaging data across all tasks"明記）　|　2026-06-10</text>
+</svg>

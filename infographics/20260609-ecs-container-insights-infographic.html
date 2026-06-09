@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ECS Container Insights の見方</title>
+  <style>
+    :root {
+      --ink: #18212f;
+      --muted: #667085;
+      --line: #d7dee8;
+      --panel: #f7f9fc;
+      --blue: #2563eb;
+      --green: #0f8f6f;
+      --amber: #c77700;
+      --red: #c24136;
+      --violet: #6d4aff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #e8edf4;
+      color: var(--ink);
+      font-family: "Noto Sans JP", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
+      letter-spacing: 0;
+    }
+
+    main {
+      width: min(1280px, 100vw);
+      aspect-ratio: 16 / 9;
+      margin: 24px auto;
+      background: #ffffff;
+      border: 1px solid #ccd5e2;
+      box-shadow: 0 24px 60px rgba(20, 30, 50, 0.18);
+      padding: 34px 42px 32px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 18px;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 24px;
+      align-items: end;
+      border-bottom: 2px solid var(--line);
+      padding-bottom: 18px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 34px;
+      line-height: 1.15;
+      font-weight: 800;
+    }
+
+    .subtitle {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.45;
+    }
+
+    .verdict {
+      width: 315px;
+      border-left: 6px solid var(--red);
+      background: #fff5f3;
+      padding: 12px 16px;
+    }
+
+    .verdict strong {
+      display: block;
+      font-size: 18px;
+      margin-bottom: 4px;
+      color: #9f2d24;
+    }
+
+    .verdict span {
+      display: block;
+      font-size: 13px;
+      line-height: 1.45;
+      color: #663b35;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.05fr 1.2fr 0.95fr;
+      gap: 18px;
+      min-height: 0;
+    }
+
+    section {
+      min-width: 0;
+    }
+
+    h2 {
+      margin: 0 0 12px;
+      font-size: 18px;
+      line-height: 1.25;
+      font-weight: 800;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+    }
+
+    .flow {
+      display: grid;
+      gap: 10px;
+    }
+
+    .flow-step {
+      display: grid;
+      grid-template-columns: 34px 1fr;
+      gap: 10px;
+      align-items: start;
+      padding: 11px 12px;
+      background: #ffffff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    .num {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--blue);
+      color: #ffffff;
+      display: grid;
+      place-items: center;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .flow-step strong {
+      display: block;
+      font-size: 15px;
+      margin-bottom: 3px;
+    }
+
+    .flow-step span {
+      color: var(--muted);
+      display: block;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .matrix {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .metric-card {
+      background: #ffffff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      min-height: 118px;
+    }
+
+    .metric-card h3 {
+      margin: 0 0 8px;
+      font-size: 16px;
+    }
+
+    .meter {
+      height: 12px;
+      background: #e5eaf1;
+      border-radius: 999px;
+      overflow: hidden;
+      margin: 9px 0 8px;
+    }
+
+    .meter > div {
+      height: 100%;
+      border-radius: 999px;
+    }
+
+    .meter.mem > div {
+      width: 80%;
+      background: linear-gradient(90deg, var(--green), var(--amber), var(--red));
+    }
+
+    .meter.cpu > div {
+      width: 72%;
+      background: linear-gradient(90deg, var(--blue), var(--violet));
+    }
+
+    .metric-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .thresholds {
+      margin-top: 10px;
+      display: grid;
+      gap: 7px;
+    }
+
+    .rule {
+      display: grid;
+      grid-template-columns: 70px 1fr;
+      gap: 8px;
+      align-items: center;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .tag {
+      color: #ffffff;
+      border-radius: 999px;
+      padding: 4px 8px;
+      text-align: center;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .ok {
+      background: var(--green);
+    }
+
+    .warn {
+      background: var(--amber);
+    }
+
+    .bad {
+      background: var(--red);
+    }
+
+    .canary {
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      gap: 12px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #ffffff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      font-size: 12px;
+    }
+
+    th,
+    td {
+      padding: 8px 9px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #eef3f9;
+      color: #334155;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .formula {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 10px;
+      align-items: center;
+      background: #f8fbff;
+      border: 1px solid #cfe0f6;
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .formula-box {
+      background: #ffffff;
+      border: 1px solid #bdd0eb;
+      border-radius: 8px;
+      padding: 11px;
+      text-align: center;
+    }
+
+    .formula-box strong {
+      display: block;
+      font-size: 21px;
+      line-height: 1;
+      color: var(--blue);
+      margin-bottom: 5px;
+    }
+
+    .formula-box span {
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.25;
+      display: block;
+    }
+
+    .arrow {
+      font-weight: 900;
+      color: var(--blue);
+      font-size: 18px;
+    }
+
+    .pitfalls {
+      display: grid;
+      gap: 10px;
+    }
+
+    .pitfall {
+      background: #ffffff;
+      border: 1px solid var(--line);
+      border-left: 5px solid var(--amber);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+
+    .pitfall strong {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 3px;
+    }
+
+    .pitfall span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    footer {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+      border-top: 2px solid var(--line);
+      padding-top: 14px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .takeaway {
+      color: var(--ink);
+      font-weight: 800;
+      font-size: 15px;
+    }
+
+    code {
+      font-family: "SFMono-Regular", Consolas, monospace;
+      background: #eef2f7;
+      border: 1px solid #dbe3ef;
+      border-radius: 5px;
+      padding: 1px 5px;
+      font-size: 0.92em;
+    }
+
+    @media print {
+      body {
+        background: #ffffff;
+      }
+
+      main {
+        margin: 0;
+        width: 100vw;
+        box-shadow: none;
+        border: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>ECS Container Insights の見方</h1>
+        <div class="subtitle">雰囲気で眺めず、キャパシティ判断・異常検知・原因切り分けに使う。平均ではなく p95 / max / 再起動を軸に見る。</div>
+      </div>
+      <div class="verdict">
+        <strong>20%流量でMEM 60%は危険寄り</strong>
+        <span>100%へ上げる前に、40%・60%で傾きを確認。比例に近いなら `2048 MiB` は不足濃厚。</span>
+      </div>
+    </header>
+
+    <div class="grid">
+      <section>
+        <h2>1. 見る順番</h2>
+        <div class="panel flow">
+          <div class="flow-step">
+            <div class="num">1</div>
+            <div>
+              <strong>Service 全体</strong>
+              <span><code>CPUUtilized</code> / <code>MemoryUtilized</code> / <code>RunningTaskCount</code> で全体の健康状態を見る。</span>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="num">2</div>
+            <div>
+              <strong>Task 単位</strong>
+              <span>平均に隠れた偏りを見る。特定タスクだけ高いならサイズ不足以外も疑う。</span>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="num">3</div>
+            <div>
+              <strong>Container 単位</strong>
+              <span>MyApp だけ重いのか、サイドカーも増えているのかを分ける。</span>
+            </div>
+          </div>
+          <div class="flow-step">
+            <div class="num">4</div>
+            <div>
+              <strong>Logs / ECS Events</strong>
+              <span>メモリ上昇時刻に OOM、再起動、特定API、バッチ、外部API遅延がないか突き合わせる。</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>2. CPU / MEM 判断軸</h2>
+        <div class="matrix">
+          <div class="metric-card">
+            <h3>Memory は余白が重要</h3>
+            <div class="meter mem"><div></div></div>
+            <p>上限に近づくと OOM で落ちる。平均より p95 / max を見る。</p>
+            <div class="thresholds">
+              <div class="rule"><span class="tag ok">&lt;70%</span><span>余裕あり</span></div>
+              <div class="rule"><span class="tag warn">70-80%</span><span>注意。流量増加時は要検証</span></div>
+              <div class="rule"><span class="tag bad">&gt;80%</span><span>増強検討。max 90% は危険</span></div>
+            </div>
+          </div>
+          <div class="metric-card">
+            <h3>CPU は遅延とセットで見る</h3>
+            <div class="meter cpu"><div></div></div>
+            <p>CPU高だけでは即死しない。p95 latency / error rate と相関させる。</p>
+            <div class="thresholds">
+              <div class="rule"><span class="tag ok">&lt;60%</span><span>余裕あり</span></div>
+              <div class="rule"><span class="tag warn">60-80%</span><span>注意。スパイク傾向を見る</span></div>
+              <div class="rule"><span class="tag bad">&gt;80%</span><span>増強 or スケールアウト</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="height: 12px;"></div>
+
+        <h2>3. カナリア時の判断表</h2>
+        <div class="canary">
+          <div class="formula">
+            <div class="formula-box">
+              <strong>20%</strong>
+              <span>traffic<br>MEM 60%</span>
+            </div>
+            <div class="arrow">→</div>
+            <div class="formula-box">
+              <strong>40% / 60%</strong>
+              <span>p95 / max / restart<br>で傾きを確認</span>
+            </div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>観測結果</th>
+                <th>判断</th>
+                <th>次の一手</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>40%でMEM 75%超</td>
+                <td>2048 MiB不足濃厚</td>
+                <td>4096 MiBへ増強</td>
+              </tr>
+              <tr>
+                <td>60%でMEM 80%超</td>
+                <td>100%は危険</td>
+                <td>4096-8192 MiB検討</td>
+              </tr>
+              <tr>
+                <td>MEM低いがLatency悪化</td>
+                <td>CPU/DB/外部API疑い</td>
+                <td>ALB/アプリ指標と相関</td>
+              </tr>
+              <tr>
+                <td>OOM / Restartあり</td>
+                <td>即対応</td>
+                <td>メモリ増強 + 原因ログ確認</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section>
+        <h2>4. 誤読しやすいポイント</h2>
+        <div class="pitfalls">
+          <div class="pitfall">
+            <strong>平均だけで判断しない</strong>
+            <span>Service平均は偏りを隠す。p95 / max とタスク別の Top contributors を見る。</span>
+          </div>
+          <div class="pitfall">
+            <strong>Memory 60%の意味は流量込み</strong>
+            <span>100%流量時の余力を見る。20%で60%なら、増え方の傾きが判断材料。</span>
+          </div>
+          <div class="pitfall">
+            <strong>5コンテナ同居はスケール単位に注意</strong>
+            <span>MyAppだけ重いなら、タスク全体を太らせるより別Service化の方が安い場合がある。</span>
+          </div>
+          <div class="pitfall">
+            <strong>Container Insights単体で完結しない</strong>
+            <span>ALBのRequestCount、TargetResponseTime、5XX、アプリログと必ず並べる。</span>
+          </div>
+          <div class="pitfall">
+            <strong>CPU高とMEM高は意味が違う</strong>
+            <span>CPU高は遅延、MEM高はOOMに直結しやすい。対応の緊急度が違う。</span>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <footer>
+      <div class="takeaway">最短ルール: 「Service平均 → Task偏り → Container原因 → Logs相関」。カナリア中は traffic / p95 / max / restart を表で見る。</div>
+      <div>2026-06-09 / ECS Container Insights</div>
+    </footer>
+  </main>
+</body>
+</html>

@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nginx Access Log Timing の見方</title>
+  <style>
+    :root {
+      --ink: #18212f;
+      --muted: #647084;
+      --line: #d7dee8;
+      --panel: #f7f9fc;
+      --blue: #2563eb;
+      --green: #0f8f6f;
+      --amber: #c77700;
+      --red: #c24136;
+      --violet: #6d4aff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #e8edf4;
+      color: var(--ink);
+      font-family: "Noto Sans JP", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
+      letter-spacing: 0;
+    }
+
+    main {
+      width: min(1280px, 100vw);
+      aspect-ratio: 16 / 9;
+      margin: 24px auto;
+      background: #ffffff;
+      border: 1px solid #ccd5e2;
+      box-shadow: 0 24px 60px rgba(20, 30, 50, 0.18);
+      padding: 30px 38px 28px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 16px;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 22px;
+      align-items: end;
+      border-bottom: 2px solid var(--line);
+      padding-bottom: 15px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 32px;
+      line-height: 1.15;
+      font-weight: 800;
+    }
+
+    .subtitle {
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .verdict {
+      width: 350px;
+      border-left: 6px solid var(--blue);
+      background: #f2f7ff;
+      padding: 11px 15px;
+    }
+
+    .verdict strong {
+      display: block;
+      color: #1745a3;
+      font-size: 17px;
+      margin-bottom: 4px;
+    }
+
+    .verdict span {
+      display: block;
+      color: #385070;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 0.86fr 1.32fr 0.9fr;
+      gap: 16px;
+      min-height: 0;
+    }
+
+    h2 {
+      margin: 0 0 10px;
+      font-size: 17px;
+      line-height: 1.25;
+      font-weight: 800;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    .log-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .log-item {
+      background: #ffffff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 9px 10px;
+    }
+
+    .log-item code {
+      display: inline-block;
+      margin-bottom: 4px;
+      color: #0f3f94;
+      font-weight: 800;
+    }
+
+    .log-item span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.42;
+    }
+
+    .sequence {
+      position: relative;
+      height: 262px;
+      background: #ffffff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px 18px;
+      overflow: hidden;
+    }
+
+    .actors {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+      align-items: center;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    .actor {
+      border: 2px solid var(--line);
+      border-radius: 8px;
+      padding: 8px;
+      font-size: 14px;
+      font-weight: 800;
+      background: #f9fbfe;
+    }
+
+    .actor.client {
+      border-color: var(--green);
+      color: #09644d;
+    }
+
+    .actor.nginx {
+      border-color: var(--blue);
+      color: #1745a3;
+    }
+
+    .actor.app {
+      border-color: var(--violet);
+      color: #4d32bd;
+    }
+
+    .timeline {
+      position: relative;
+      height: 190px;
+    }
+
+    .lane {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: #dce4ef;
+    }
+
+    .lane.client {
+      left: 16.6%;
+    }
+
+    .lane.nginx {
+      left: 50%;
+    }
+
+    .lane.app {
+      left: 83.3%;
+    }
+
+    .arrow {
+      position: absolute;
+      height: 2px;
+      background: #506070;
+    }
+
+    .arrow::after {
+      content: "";
+      position: absolute;
+      right: -1px;
+      top: -4px;
+      border-left: 8px solid #506070;
+      border-top: 5px solid transparent;
+      border-bottom: 5px solid transparent;
+    }
+
+    .arrow.left::after {
+      right: auto;
+      left: -1px;
+      border-left: 0;
+      border-right: 8px solid #506070;
+    }
+
+    .msg {
+      position: absolute;
+      font-size: 11px;
+      color: #334155;
+      background: #ffffff;
+      padding: 2px 5px;
+      white-space: nowrap;
+    }
+
+    .span {
+      position: absolute;
+      border-radius: 999px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 800;
+      color: #ffffff;
+      white-space: nowrap;
+      padding: 0 8px;
+    }
+
+    .rt {
+      left: 16%;
+      right: 16%;
+      top: 152px;
+      background: var(--blue);
+    }
+
+    .uct {
+      left: 50%;
+      width: 20%;
+      top: 72px;
+      background: var(--green);
+    }
+
+    .uht {
+      left: 55%;
+      width: 26%;
+      top: 104px;
+      background: var(--amber);
+    }
+
+    .urt {
+      left: 55%;
+      width: 42%;
+      top: 128px;
+      background: var(--red);
+    }
+
+    .legend {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
+      margin-top: 10px;
+    }
+
+    .legend-card {
+      background: #ffffff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 9px 10px;
+      min-height: 67px;
+    }
+
+    .legend-card strong {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 4px;
+    }
+
+    .legend-card span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.35;
+    }
+
+    .blue {
+      border-left: 5px solid var(--blue);
+    }
+
+    .green {
+      border-left: 5px solid var(--green);
+    }
+
+    .amber {
+      border-left: 5px solid var(--amber);
+    }
+
+    .red {
+      border-left: 5px solid var(--red);
+    }
+
+    pre {
+      margin: 0;
+      background: #101828;
+      color: #e6edf7;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 11px;
+      line-height: 1.48;
+      overflow: hidden;
+      white-space: pre-wrap;
+    }
+
+    .patterns {
+      display: grid;
+      gap: 8px;
+    }
+
+    .pattern {
+      display: grid;
+      grid-template-columns: 94px 1fr;
+      gap: 8px;
+      align-items: start;
+      background: #ffffff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 9px;
+    }
+
+    .badge {
+      border-radius: 999px;
+      color: #ffffff;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 4px 6px;
+      white-space: nowrap;
+    }
+
+    .badge.green {
+      background: var(--green);
+      border-left: 0;
+    }
+
+    .badge.amber {
+      background: var(--amber);
+      border-left: 0;
+    }
+
+    .badge.red {
+      background: var(--red);
+      border-left: 0;
+    }
+
+    .badge.blue {
+      background: var(--blue);
+      border-left: 0;
+    }
+
+    .pattern strong {
+      display: block;
+      font-size: 12px;
+      margin-bottom: 3px;
+    }
+
+    .pattern span {
+      color: var(--muted);
+      display: block;
+      font-size: 11px;
+      line-height: 1.35;
+    }
+
+    footer {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 14px;
+      align-items: center;
+      border-top: 2px solid var(--line);
+      padding-top: 12px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .takeaway {
+      color: var(--ink);
+      font-weight: 800;
+      font-size: 14px;
+    }
+
+    code {
+      font-family: "SFMono-Regular", Consolas, monospace;
+      background: #eef2f7;
+      border: 1px solid #dbe3ef;
+      border-radius: 5px;
+      padding: 1px 5px;
+      font-size: 0.92em;
+    }
+
+    @media print {
+      body {
+        background: #ffffff;
+      }
+
+      main {
+        margin: 0;
+        width: 100vw;
+        box-shadow: none;
+        border: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>Nginx Access Log Timing の見方</h1>
+        <div class="subtitle">ECS / ALB の外形監視だけでは「Nginx・アプリ・クライアントのどこで遅いか」が切れない。Nginx access log に timing 変数を入れて、1リクエスト単位で切り分ける。</div>
+      </div>
+      <div class="verdict">
+        <strong>追加すべき最小セット</strong>
+        <span><code>request_time</code>, <code>upstream_connect_time</code>, <code>upstream_header_time</code>, <code>upstream_response_time</code>, <code>upstream_status</code>, <code>request_id</code></span>
+      </div>
+    </header>
+
+    <div class="grid">
+      <section>
+        <h2>1. ログに足す項目</h2>
+        <div class="panel log-list">
+          <div class="log-item">
+            <code>$request_time</code>
+            <span>Nginxがクライアントから最初のバイトを読んでから、処理が終わるまでの全体時間。</span>
+          </div>
+          <div class="log-item">
+            <code>$upstream_connect_time</code>
+            <span>上流アプリへの接続確立時間。TLS upstream なら handshake も含む。</span>
+          </div>
+          <div class="log-item">
+            <code>$upstream_header_time</code>
+            <span>上流アプリに接続してから、レスポンスヘッダを受け取るまで。</span>
+          </div>
+          <div class="log-item">
+            <code>$upstream_response_time</code>
+            <span>上流アプリに接続してから、レスポンス全体を受け取るまで。</span>
+          </div>
+          <div class="log-item">
+            <code>$upstream_status</code>
+            <span>上流アプリが返したHTTPステータス。Nginxの <code>$status</code> と分けて見る。</span>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>2. 各 time が示す区間</h2>
+        <div class="sequence">
+          <div class="actors">
+            <div class="actor client">Client / ALB</div>
+            <div class="actor nginx">Nginx</div>
+            <div class="actor app">Upstream App</div>
+          </div>
+          <div class="timeline">
+            <div class="lane client"></div>
+            <div class="lane nginx"></div>
+            <div class="lane app"></div>
+
+            <div class="arrow" style="left: 16.6%; width: 33.4%; top: 28px;"></div>
+            <div class="msg" style="left: 23%; top: 10px;">request start</div>
+
+            <div class="arrow" style="left: 50%; width: 33.3%; top: 66px;"></div>
+            <div class="msg" style="left: 58%; top: 48px;">connect / proxy</div>
+
+            <div class="arrow left" style="left: 50%; width: 33.3%; top: 104px;"></div>
+            <div class="msg" style="left: 58%; top: 86px;">response header</div>
+
+            <div class="arrow left" style="left: 50%; width: 33.3%; top: 132px;"></div>
+            <div class="msg" style="left: 60%; top: 137px;">response body</div>
+
+            <div class="arrow left" style="left: 16.6%; width: 33.4%; top: 168px;"></div>
+            <div class="msg" style="left: 25%; top: 171px;">response done</div>
+
+            <div class="span uct">$upstream_connect_time</div>
+            <div class="span uht">$upstream_header_time</div>
+            <div class="span urt">$upstream_response_time</div>
+            <div class="span rt">$request_time</div>
+          </div>
+        </div>
+
+        <div class="legend">
+          <div class="legend-card blue">
+            <strong>request_time</strong>
+            <span>クライアント読み取り、Nginx処理、upstream待ち、クライアントへの送信までを含みうる。</span>
+          </div>
+          <div class="legend-card green">
+            <strong>connect_time</strong>
+            <span>上流へのTCP/TLS接続。ここが高いならネットワーク、名前解決、接続枯渇を疑う。</span>
+          </div>
+          <div class="legend-card amber">
+            <strong>header_time</strong>
+            <span>上流が最初の応答を返すまで。アプリ処理・DB待ち・キュー滞留が出やすい。</span>
+          </div>
+          <div class="legend-card red">
+            <strong>response_time</strong>
+            <span>上流レスポンスを最後まで受け取るまで。大きなレスポンスやstreamingで伸びる。</span>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>3. 推奨 log_format</h2>
+        <pre>log_format app_timing escape=json
+'{"time":"$time_iso8601",'
+'"request_id":"$request_id",'
+'"remote_addr":"$remote_addr",'
+'"xff":"$http_x_forwarded_for",'
+'"method":"$request_method",'
+'"host":"$host",'
+'"uri":"$request_uri",'
+'"status":$status,'
+'"upstream_status":"$upstream_status",'
+'"request_time":$request_time,'
+'"upstream_connect_time":"$upstream_connect_time",'
+'"upstream_header_time":"$upstream_header_time",'
+'"upstream_response_time":"$upstream_response_time",'
+'"upstream_addr":"$upstream_addr",'
+'"request_length":$request_length,'
+'"body_bytes_sent":$body_bytes_sent,'
+'"user_agent":"$http_user_agent"}';</pre>
+
+        <div style="height: 10px;"></div>
+        <h2>4. 遅い時の読み分け</h2>
+        <div class="patterns">
+          <div class="pattern">
+            <div class="badge green">uct高</div>
+            <div><strong>接続が遅い</strong><span>upstream接続、TLS、ポート枯渇、名前解決、SG/NACL、アプリ受け口を確認。</span></div>
+          </div>
+          <div class="pattern">
+            <div class="badge amber">uht高</div>
+            <div><strong>アプリ初動が遅い</strong><span>DB、外部API、ロック、キュー、CPU飽和、GCを疑う。</span></div>
+          </div>
+          <div class="pattern">
+            <div class="badge red">urt高</div>
+            <div><strong>レスポンス完了が遅い</strong><span>巨大レスポンス、streaming、upstream送信、Nginx bufferingを確認。</span></div>
+          </div>
+          <div class="pattern">
+            <div class="badge blue">rtだけ高</div>
+            <div><strong>クライアント側も疑う</strong><span>client upload/download、ALB-Nginx間、Nginx処理、ログ上の差分を見る。</span></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <footer>
+      <div class="takeaway">最短ルール: <code>rt</code> は全体、<code>uct</code> は接続、<code>uht</code> は初回応答、<code>urt</code> は上流完了。<code>$status</code> と <code>$upstream_status</code> は分けて見る。</div>
+      <div>Sources: docs.nginx.com logging / nginx.org variables</div>
+    </footer>
+  </main>
+</body>
+</html>
