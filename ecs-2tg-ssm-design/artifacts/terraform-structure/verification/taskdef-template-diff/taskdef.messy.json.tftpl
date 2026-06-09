@@ -1,0 +1,22 @@
+[
+{
+  "logConfiguration": {
+    "options": {
+      "awslogs-stream-prefix": "main",
+      "awslogs-region": "${aws_region_name}",
+      "awslogs-group": "${log_group}"
+    },
+    "logDriver": "awslogs"
+  },
+  "portMappings": [
+    {
+      "protocol": "tcp",
+      "hostPort": ${container_port},
+      "containerPort": ${container_port}
+    }
+  ],
+  "essential": true,
+  "image": "${image_uri}",
+  "name": "${container_name}"
+}
+]

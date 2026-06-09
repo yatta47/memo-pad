@@ -1,0 +1,5 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "momomonga-lab",
+  "compatibility_date": "2026-05-01"
+}
