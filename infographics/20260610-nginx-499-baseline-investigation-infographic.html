@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nginx 499 ベースライン調査キット</title>
+  <style>
+    :root {
+      --ink: #18212f;
+      --muted: #647084;
+      --line: #d7dee8;
+      --panel: #f7f9fc;
+      --blue: #2563eb;
+      --green: #0f8f6f;
+      --amber: #c77700;
+      --red: #c24136;
+      --violet: #6d4aff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #e8edf4;
+      color: var(--ink);
+      font-family: "Noto Sans JP", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
+    }
+
+    main {
+      width: min(1280px, 100vw);
+      aspect-ratio: 16 / 9;
+      margin: 24px auto;
+      background: #ffffff;
+      border: 1px solid #ccd5e2;
+      box-shadow: 0 24px 60px rgba(20, 30, 50, 0.18);
+      padding: 24px 32px 20px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 12px;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 22px;
+      align-items: end;
+      border-bottom: 2px solid var(--line);
+      padding-bottom: 11px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 26px;
+      line-height: 1.15;
+      font-weight: 800;
+    }
+
+    .subtitle {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 12.5px;
+      line-height: 1.4;
+    }
+
+    .verdict {
+      width: 390px;
+      border-left: 6px solid var(--blue);
+      background: #f2f7ff;
+      padding: 9px 14px;
+    }
+
+    .verdict strong {
+      display: block;
+      color: #1745a3;
+      font-size: 13.5px;
+      margin-bottom: 3px;
+    }
+
+    .verdict span {
+      display: block;
+      color: #385070;
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 0.92fr 1.25fr;
+      gap: 14px;
+      min-height: 0;
+    }
+
+    section {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      padding: 10px 13px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.2;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .num {
+      display: inline-grid;
+      place-items: center;
+      width: 21px;
+      height: 21px;
+      border-radius: 50%;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      flex: none;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left-width: 4px;
+      padding: 7px 10px;
+    }
+
+    .card .tag {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+
+    .card p {
+      margin: 3px 0 0;
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    .card ul {
+      margin: 3px 0 0;
+      padding-left: 16px;
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    .strike { color: var(--muted); text-decoration: line-through; }
+
+    .flow {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #385070;
+      flex-wrap: wrap;
+    }
+
+    .flow .step {
+      background: #fff;
+      border: 1px solid var(--line);
+      padding: 3px 8px;
+      border-radius: 3px;
+    }
+
+    .flow .arrow { color: var(--muted); }
+
+    code, pre {
+      font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+    }
+
+    pre {
+      margin: 3px 0 0;
+      background: #1c2433;
+      color: #d8e2f2;
+      font-size: 9.5px;
+      line-height: 1.45;
+      padding: 6px 8px;
+      border-radius: 4px;
+      overflow: hidden;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    pre .cm { color: #7e8ca3; }
+
+    .qtitle {
+      font-size: 11.5px;
+      font-weight: 700;
+      margin: 0;
+    }
+
+    .qtitle small {
+      font-weight: 400;
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    footer {
+      border-top: 2px solid var(--line);
+      padding-top: 9px;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+
+    footer .label {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--violet);
+      padding-top: 4px;
+      white-space: nowrap;
+    }
+
+    .matrix {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .matrix div {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-top-width: 3px;
+      padding: 5px 9px;
+      font-size: 10.5px;
+      line-height: 1.45;
+    }
+
+    .matrix b { display: block; font-size: 11px; margin-bottom: 1px; }
+
+    .ok    { border-top-color: var(--green); }
+    .warn  { border-top-color: var(--amber); }
+    .bad   { border-top-color: var(--red); }
+    .info  { border-top-color: var(--blue); }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>Nginx 499 ベースライン調査キット</h1>
+        <div class="subtitle">「大量の499は問題ない」を証明して閉じるための1枚 — 観測事実: request_time ≒ upstream_response_time / 値はバラバラ(0.13s〜3s) / EC2:ECS 50:50 で均等発生 / ユーザー影響報告なし</div>
+      </div>
+      <div class="verdict">
+        <strong>Done の定義</strong>
+        <span>代表的な499を1件取り出し、そのリクエストの一生（誰が・どのパスに・何秒待って・なぜ切ったか）を語れること。＋ ベースライン文書化 ＋ 499率の逸脱アラート</span>
+      </div>
+    </header>
+
+    <div class="grid">
+      <section>
+        <h2><span class="num" style="background:var(--blue)">1</span>着地のストーリー</h2>
+        <div class="card" style="border-left-color:var(--muted)">
+          <span class="tag" style="color:var(--muted)">消去法で確定済み</span>
+          <ul>
+            <li><span class="strike">コア数 (2core/1core 両方で発生)</span></li>
+            <li><span class="strike">ECS / Fargate 固有 (EC2でも均等発生)</span></li>
+            <li><span class="strike">Nginx設定差・KeepAlive (両系統同率)</span></li>
+            <li><span class="strike">ALB自身の再送 (送信済みリクエストは再送しない仕様)</span></li>
+          </ul>
+          <p>→ 原因・再送者とも <b>ALBより手前のクライアント</b> か <b>両系統共有の依存先</b></p>
+        </div>
+        <div class="card" style="border-left-color:var(--green)">
+          <span class="tag" style="color:var(--green)">仮説A: 短時間群 = プログラムの正常キャンセル</span>
+          <p>検索の打鍵ごとのabort / SPA画面遷移 / ポーリング世代交代。<b>仕様として文書化して閉じる</b></p>
+        </div>
+        <div class="card" style="border-left-color:var(--amber)">
+          <span class="tag" style="color:var(--amber)">仮説B: 長時間群 = 遅さによるサイレント離脱</span>
+          <p>成功時p95を超えて待った末の切断。<b>499問題ではなく該当パスのレイテンシ問題</b>に変換して改善バックログへ</p>
+        </div>
+        <div class="flow">
+          <span class="step">率の確定</span><span class="arrow">→</span>
+          <span class="step">2群分割</span><span class="arrow">→</span>
+          <span class="step">顔ぶれ特定</span><span class="arrow">→</span>
+          <span class="step">個体解剖</span><span class="arrow">→</span>
+          <span class="step">文書化+監視</span>
+        </div>
+      </section>
+
+      <section>
+        <h2><span class="num" style="background:var(--green)">2</span>必要な情報</h2>
+        <div class="card" style="border-left-color:var(--green)">
+          <span class="tag" style="color:var(--green)">Nginx アクセスログ（log_format 仕込み）</span>
+          <p>status / method / path / User-Agent に加えて:</p>
+          <pre>rt=$request_time uct=$upstream_connect_time
+uht=$upstream_header_time urt=$upstream_response_time
+ust=$upstream_status trace="$http_x_amzn_trace_id"</pre>
+        </div>
+        <div class="card" style="border-left-color:var(--blue)">
+          <span class="tag" style="color:var(--blue)">ALB アクセスログ (S3 + Athena)</span>
+          <p>elb_status_code (460?) / target_status_code / target_processing_time / client:port / trace_id<br>
+          <b>trace_id:</b> 無→ALBがRoot生成 / 有→Self追記でRoot保持。<b>Nginx↔ALBの同一試行を1対1で突合</b>（リトライ間は別Root。前段付与なら同一→再送即確定）</p>
+        </div>
+        <div class="card" style="border-left-color:var(--violet)">
+          <span class="tag" style="color:var(--violet)">成功リクエストのレイテンシ分布</span>
+          <p>パス別 p50 / p95 — 短時間群と長時間群を割る<b>分類閾値</b>に使う</p>
+        </div>
+        <div class="card" style="border-left-color:var(--red)">
+          <span class="tag" style="color:var(--red)">前段の構成情報（ヒアリング）</span>
+          <p>ALBの手前は誰か（ブラウザ直 / API GW / 他システム）と、そのtimeout・retry設定。<b>0.13秒切断の正体はここで確定</b></p>
+        </div>
+      </section>
+
+      <section>
+        <h2><span class="num" style="background:var(--violet)">3</span>クエリ <small style="font-weight:400;color:var(--muted);font-size:11px">Nginx=Logs Insights / ALB=Athena ※parseはログ形式に合わせ調整</small></h2>
+        <p class="qtitle">Q1 499率と分布 <small>— 全体像を1つの数字に</small></p>
+        <pre>stats count(*) as total, sum(status=499) as c499,
+  c499*100.0/total as pct by bin(1h)</pre>
+        <p class="qtitle">Q2 2群分割・顔ぶれ <small>— path/method/UA別 上位</small></p>
+        <pre>filter status=499 | stats count(*) as n,
+  pct(request_time,95) by path, method, user_agent | sort n desc</pre>
+        <p class="qtitle">Q3 分類閾値 <small>— 成功時のパス別 p50/p95</small></p>
+        <pre>filter status<400
+| stats pct(request_time,50), pct(request_time,95) by path</pre>
+        <p class="qtitle">Q4 ALB側突合 <small>— 460と切断者の特定 (Athena)</small></p>
+        <pre>SELECT time, elb_status_code, target_processing_time,
+  client_ip, request_url, trace_id FROM alb_logs
+WHERE elb_status_code = 460 AND day = '...' ORDER BY time</pre>
+        <p class="qtitle">Q5 個体解剖 <small>— 同一クライアントの直後再送パターン</small></p>
+        <pre>SELECT * FROM alb_logs WHERE client_ip = '&lt;Q4のIP&gt;'
+  AND time BETWEEN '&lt;t-5s&gt;' AND '&lt;t+5s&gt;' ORDER BY time
+<span class="cm">-- 判定: 数百ms内に同一URL再出現+ポート違い=新接続の
+--  打ち直し(透過リトライ) / 同ポート=通常の連続アクセス</span></pre>
+      </section>
+    </div>
+
+    <footer>
+      <div class="label">判定マトリクス<br><span style="font-weight:400;color:var(--muted);font-size:10px">(Q5の再送パターンで裁く)</span></div>
+      <div class="matrix">
+        <div class="ok"><b>GET + 直後にパラメータ違い再送</b>世代交代キャンセル（検索/ポーリング）。正常 → ベースライン文書化して閉じる</div>
+        <div class="ok"><b>GET + 再送なし</b>画面遷移・コンポーネント破棄。正常 → 同上</div>
+        <div class="info"><b>完全同一リクエストの即時再送</b>再送側が200なら実害なしの「打ち直し」→ 増幅率を記録して閉じる。過剰(数十%超)なら前段のtimeout/retry設定へ</div>
+        <div class="warn"><b>POST/PUT混在 or 成功p95超の切断が特定パスに集中</b>非冪等キャンセル or 遅さによる離脱 → 改善対象に格上げ</div>
+      </div>
+    </footer>
+  </main>
+</body>
+</html>

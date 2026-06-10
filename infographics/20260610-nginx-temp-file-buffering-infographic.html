@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ADR: Nginx temporary file 警告の取り扱い</title>
+  <style>
+    :root {
+      --ink: #18212f;
+      --muted: #647084;
+      --line: #d7dee8;
+      --panel: #f7f9fc;
+      --blue: #2563eb;
+      --green: #0f8f6f;
+      --amber: #c77700;
+      --red: #c24136;
+      --violet: #6d4aff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #e8edf4;
+      color: var(--ink);
+      font-family: "Noto Sans JP", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
+    }
+
+    main {
+      width: min(1280px, 100vw);
+      aspect-ratio: 16 / 9;
+      margin: 24px auto;
+      background: #ffffff;
+      border: 1px solid #ccd5e2;
+      box-shadow: 0 24px 60px rgba(20, 30, 50, 0.18);
+      padding: 22px 32px 18px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 10px;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 22px;
+      align-items: end;
+      border-bottom: 2px solid var(--line);
+      padding-bottom: 10px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.15;
+      font-weight: 800;
+    }
+
+    .subtitle {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .meta {
+      display: flex;
+      gap: 6px;
+      margin-top: 7px;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 2px 9px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: #385070;
+    }
+
+    .chip.status { background: #fff4e2; border-color: #ecc78f; color: #8a5a00; }
+
+    .verdict {
+      width: 400px;
+      border-left: 6px solid var(--blue);
+      background: #f2f7ff;
+      padding: 9px 14px;
+    }
+
+    .verdict strong {
+      display: block;
+      color: #1745a3;
+      font-size: 13px;
+      margin-bottom: 3px;
+    }
+
+    .verdict span {
+      display: block;
+      color: #385070;
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 0.92fr 1.18fr 1.05fr;
+      gap: 13px;
+      min-height: 0;
+    }
+
+    section {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 14.5px;
+      line-height: 1.2;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .num {
+      display: inline-grid;
+      place-items: center;
+      width: 21px;
+      height: 21px;
+      border-radius: 50%;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      flex: none;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-left-width: 4px;
+      padding: 6px 9px;
+    }
+
+    .card .tag {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+    }
+
+    .card p {
+      margin: 2px 0 0;
+      font-size: 10.5px;
+      line-height: 1.45;
+    }
+
+    .card ul {
+      margin: 2px 0 0;
+      padding-left: 15px;
+      font-size: 10.5px;
+      line-height: 1.45;
+    }
+
+    .badge {
+      display: inline-block;
+      font-size: 9.5px;
+      font-weight: 800;
+      padding: 1px 7px;
+      border-radius: 3px;
+      margin-left: 5px;
+      vertical-align: 1px;
+    }
+
+    .badge.adopt   { background: #e2f5ee; color: #0a6e55; }
+    .badge.reject  { background: #fbe9e7; color: #a33327; }
+    .badge.second  { background: #fff4e2; color: #8a5a00; }
+
+    .prosCons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .prosCons div {
+      border: 1px solid var(--line);
+      border-top-width: 3px;
+      background: #fff;
+      padding: 4px 8px;
+      font-size: 10px;
+      line-height: 1.45;
+    }
+
+    .prosCons b { display: block; font-size: 10.5px; margin-bottom: 1px; }
+    .prosCons ul { margin: 0; padding-left: 13px; }
+    .pros { border-top-color: var(--green); }
+    .cons { border-top-color: var(--red); }
+
+    code, pre {
+      font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+    }
+
+    pre {
+      margin: 3px 0 0;
+      background: #1c2433;
+      color: #d8e2f2;
+      font-size: 9.5px;
+      line-height: 1.45;
+      padding: 6px 8px;
+      border-radius: 4px;
+      overflow: hidden;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    pre .cm { color: #7e8ca3; }
+
+    footer {
+      border-top: 2px solid var(--line);
+      padding-top: 8px;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+
+    footer .label {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--violet);
+      padding-top: 4px;
+      white-space: nowrap;
+    }
+
+    .matrix {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .matrix div {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-top-width: 3px;
+      padding: 5px 9px;
+      font-size: 10px;
+      line-height: 1.45;
+    }
+
+    .matrix b { display: block; font-size: 10.5px; margin-bottom: 1px; }
+
+    .ok    { border-top-color: var(--green); }
+    .warn  { border-top-color: var(--amber); }
+    .bad   { border-top-color: var(--red); }
+    .info  { border-top-color: var(--blue); }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>ADR: Nginx temporary file 警告の取り扱い</h1>
+        <div class="subtitle">[warn] a client request body is buffered to a temporary file — 大容量ファイル送信API（約200件 × 10MB）で大量出力され、保守からの問い合わせが続いている件の意思決定記録</div>
+        <div class="meta">
+          <span class="chip status">Status: Proposed（検証完了後 Accepted）</span>
+          <span class="chip">Date: 2026-06-10</span>
+          <span class="chip">Scope: ECS Task内 Nginx / FireLens</span>
+        </div>
+      </div>
+      <div class="verdict">
+        <strong>決定（Decision）</strong>
+        <span>バッファリング設定は<b>変更しない</b>（temp file退避は正常動作として容認）。warnは<b>FireLens（配送の根本1箇所）で除去</b>し、理由を Runbook と設定コメントに固定する</span>
+      </div>
+    </header>
+
+    <div class="grid">
+      <section>
+        <h2><span class="num" style="background:var(--blue)">1</span>コンテキスト</h2>
+        <div class="card" style="border-left-color:var(--blue)">
+          <span class="tag" style="color:var(--blue)">事象</span>
+          <p>10MB級のbodyが client_body_buffer_size（デフォルト8k|16k）を超え、ディスク（temp file）へ退避。<b>遅いクライアントからアプリを隔離する安全弁が働いた正常動作</b>でありエラーではない</p>
+        </div>
+        <div class="card" style="border-left-color:var(--muted)">
+          <span class="tag" style="color:var(--muted)">構成</span>
+          <p>ALB → Nginx → .NETアプリ（同一Task内 / Fargate <b>vCPU 1024・メモリ 2048MB</b>）。ログは FireLens 経由で New Relic と CloudWatch Logs の両方へ配送</p>
+        </div>
+        <div class="card" style="border-left-color:var(--amber)">
+          <span class="tag" style="color:var(--amber)">何が問題か（技術ではなく運用）</span>
+          <p>技術的実害なし: 書込は200×10MB≒2GB、転送後削除。実害は<b>保守からの問い合わせが止まらないこと</b>。既知無害のwarnを流し続けると「warnは無視してよい」と学習され、意味のあるwarnまで読まれなくなる（アラート疲れ）</p>
+        </div>
+        <div class="card" style="border-left-color:var(--green)">
+          <span class="tag" style="color:var(--green)">前提条件</span>
+          <ul>
+            <li>client_max_body_size ≥ 10MB 設定済み（413が出ていない）</li>
+            <li>大容量送信は正当な業務仕様である</li>
+          </ul>
+        </div>
+      </section>
+
+      <section>
+        <h2><span class="num" style="background:var(--amber)">2</span>検討した選択肢</h2>
+        <div class="card" style="border-left-color:var(--red)">
+          <span class="tag" style="color:var(--red)">A. client_body_buffer_size 増量<span class="badge reject">不採用</span></span>
+          <p>10MB×同時接続数をRAMに抱える。<b>タスクメモリ2048MBを.NETと分け合う前提では成立しない</b>（同時20件で200MB、200件で2GB）</p>
+        </div>
+        <div class="card" style="border-left-color:var(--red)">
+          <span class="tag" style="color:var(--red)">B. proxy_request_buffering off（ストリーミング化）<span class="badge reject">不採用</span></span>
+          <div class="prosCons">
+            <div class="pros"><b>メリット</b>
+              <ul>
+                <li>temp file書込ゼロ → warnも消える</li>
+                <li>受信しながら処理開始できる</li>
+                <li>Nginxのメモリ/ディスク不使用</li>
+              </ul>
+            </div>
+            <div class="cons"><b>デメリット</b>
+              <ul>
+                <li>受信完了まで<b>アプリ接続を拘束</b></li>
+                <li>1core .NETの同時処理枠を削る</li>
+                <li>送信開始後は上流<b>リトライ不可</b></li>
+                <li>緩衝材を外しただけ</li>
+              </ul>
+            </div>
+          </div>
+          <p><b>再考条件:</b> 受信即処理の要件化 / ディスクI/O実測逼迫 → <b>該当locationのみ</b></p>
+        </div>
+        <div class="card" style="border-left-color:var(--amber)">
+          <span class="tag" style="color:var(--amber)">C. location限定で error_log レベルをerrorに<span class="badge second">次点</span></span>
+          <p>Nginx設定だけで完結するが、同locationの<b>他のwarn/noticeも消える</b></p>
+        </div>
+        <div class="card" style="border-left-color:var(--green)">
+          <span class="tag" style="color:var(--green)">D. temp file容認 + FireLensで該当warnのみ除去<span class="badge adopt">採用</span></span>
+          <p><b>ファンアウト手前の1箇所</b>で除去＝NR/CW両出口が常に一致。失う観測はこの1行だけ</p>
+        </div>
+      </section>
+
+      <section>
+        <h2><span class="num" style="background:var(--green)">3</span>対処（実装と検証）</h2>
+        <p style="margin:0;font-size:11px;font-weight:700">① FireLens（Fluent Bit）に grep フィルタ追加</p>
+        <pre><span class="cm"># 既知warn除去: ファイル送信API(10MB級)の正常動作通知。
+# 対処不要。経緯と説明は Runbook <リンク> 参照 (ADR 2026-06-10)</span>
+[FILTER]
+    Name    grep
+    Match   nginx-firelens-*
+    Exclude log buffered to a temporary file</pre>
+        <p style="margin:0;font-size:11px;font-weight:700">② 記録の固定（再質問の根本対策）</p>
+        <div class="card" style="border-left-color:var(--violet)">
+          <p>Runbookに1行「この警告はファイル送信APIの正常動作。対処不要」＋ 設定ファイル自体に上記コメント。<b>ログを見ても・設定を見ても・Runbookを見ても同じ答え</b>に辿り着く状態にする</p>
+        </div>
+        <p style="margin:0;font-size:11px;font-weight:700">③ 検証（ポジティブ・ネガティブ両方）</p>
+        <div class="card" style="border-left-color:var(--green)">
+          <ul>
+            <li>(a) 該当warnが <b>NR と CW の両方</b>から消えた</li>
+            <li>(b) 同じNginxの<b>他の</b>warn/errorは引き続き届く</li>
+            <li>(c) マッチしない場合は正規表現のスペースを <code>\s</code> に置換</li>
+            <li>(d) Matchタグは必ずNginxコンテナに限定（アプリログの巻き添え防止）</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+
+    <footer>
+      <div class="label">帰結<br><span style="font-weight:400;color:var(--muted);font-size:10px">(Consequences)</span></div>
+      <div class="matrix">
+        <div class="ok"><b>維持されるもの</b>遅いクライアントからのアプリ保護（接続拘束時間の最小化）。1core .NETの同時処理枠を守る現行の挙動はそのまま</div>
+        <div class="warn"><b>失うもの</b>ディスク退避の発生をログでは観測できなくなる。必要ならエフェメラルストレージ使用率の監視で代替する</div>
+        <div class="bad"><b>将来の地雷</b>readonlyRootFilesystem 化すると temp file が書けず warn でなく<b>エラー</b>になる。読み取り専用化の際は temp path の volume マウントが必須</div>
+        <div class="info"><b>運用メモ</b>FireLens カスタム設定（config-file-type: S3/file）が未導入ならその仕込みが作業の大半。フィルタ追加後のデプロイはタスク定義の改訂で反映</div>
+      </div>
+    </footer>
+  </main>
+</body>
+</html>
