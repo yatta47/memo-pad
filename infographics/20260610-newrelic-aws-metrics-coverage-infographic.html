@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AWS × New Relic メトリクス連携の責任分界 — Metric Streams vs newrelic-infra</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Noto Sans JP', 'Hiragino Sans', 'Yu Gothic', sans-serif;
+      background: #f1f5f9;
+      color: #1e293b;
+      width: 1400px;
+      margin: 0 auto;
+    }
+    .header {
+      background: linear-gradient(135deg, #0b3a82, #1d4ed8);
+      color: #fff;
+      padding: 36px 48px 30px;
+    }
+    .header h1 { font-size: 30px; font-weight: 700; letter-spacing: 0.02em; }
+    .header p { margin-top: 10px; font-size: 15px; opacity: 0.9; line-height: 1.6; }
+    .section { padding: 32px 48px 8px; }
+    .section h2 {
+      font-size: 20px; font-weight: 700; color: #0b3a82;
+      border-left: 6px solid #1d4ed8; padding-left: 12px; margin-bottom: 20px;
+    }
+
+    /* ===== zone diagram ===== */
+    .zones { display: flex; gap: 24px; }
+    .zone {
+      flex: 1; border-radius: 12px; padding: 20px;
+      border: 2px solid; position: relative;
+    }
+    .zone-aws { border-color: #f59e0b; background: #fffbeb; }
+    .zone-task { border-color: #10b981; background: #ecfdf5; }
+    .zone-label {
+      font-size: 16px; font-weight: 700; margin-bottom: 4px;
+    }
+    .zone-aws .zone-label { color: #b45309; }
+    .zone-task .zone-label { color: #047857; }
+    .zone-sub { font-size: 12.5px; color: #64748b; margin-bottom: 14px; line-height: 1.5; }
+
+    .box {
+      background: #fff; border: 1.5px solid #cbd5e1; border-radius: 10px;
+      padding: 14px 16px; margin-bottom: 0;
+    }
+    .box-title { font-size: 14.5px; font-weight: 700; margin-bottom: 8px; }
+    .chip {
+      display: block; font-size: 12.5px; line-height: 1.5;
+      background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;
+      padding: 7px 10px; margin-top: 6px;
+    }
+    .chip b { color: #0b3a82; }
+    .chip .note { color: #94a3b8; }
+
+    .flow-arrow {
+      text-align: center; font-size: 13px; font-weight: 700;
+      padding: 8px 0; line-height: 1.5;
+    }
+    .flow-arrow .arr { font-size: 20px; display: block; }
+    .zone-aws .flow-arrow { color: #b45309; }
+    .zone-task .flow-arrow { color: #047857; }
+
+    .task-box {
+      background: #fff; border: 2px solid #10b981; border-radius: 10px; padding: 14px 16px;
+    }
+    .containers { display: flex; gap: 10px; margin-top: 10px; }
+    .container-box {
+      flex: 1; border-radius: 8px; padding: 10px 12px;
+      font-size: 13px; font-weight: 700; text-align: center;
+      border: 1.5px solid #94a3b8; background: #f8fafc; line-height: 1.5;
+    }
+    .container-box small { display: block; font-weight: 400; font-size: 11.5px; color: #64748b; margin-top: 4px; }
+    .container-nr {
+      border-color: #16a34a; background: #f0fdf4; color: #166534;
+    }
+    .apm-chip {
+      display: inline-block; margin-top: 6px; font-size: 11px; font-weight: 700;
+      background: #ede9fe; color: #6d28d9; border-radius: 999px; padding: 2px 10px;
+    }
+
+    .polling-note {
+      margin-top: 14px; border: 1.5px dashed #f59e0b; border-radius: 8px;
+      background: #fff; padding: 10px 14px; font-size: 12.5px; line-height: 1.6; color: #92400e;
+    }
+    .polling-note b { color: #b45309; }
+
+    .nr-box {
+      margin: 4px 48px 0; background: linear-gradient(135deg, #0f172a, #1e293b);
+      color: #fff; border-radius: 12px; padding: 18px 24px; text-align: center;
+    }
+    .nr-box .title { font-size: 18px; font-weight: 700; letter-spacing: 0.04em; }
+    .nr-box .sub { font-size: 12.5px; opacity: 0.85; margin-top: 6px; line-height: 1.6; }
+    .merge-arrows { display: flex; margin: 0 48px; }
+    .merge-arrows div {
+      flex: 1; text-align: center; font-size: 13px; font-weight: 700; padding: 10px 0 6px; line-height: 1.5;
+    }
+    .merge-left { color: #b45309; }
+    .merge-right { color: #047857; }
+
+    /* ===== insight ===== */
+    .insight {
+      margin: 28px 48px 0; background: #fef2f2; border: 2px solid #ef4444;
+      border-radius: 12px; padding: 18px 24px;
+    }
+    .insight .tag {
+      display: inline-block; background: #ef4444; color: #fff; font-size: 12px;
+      font-weight: 700; border-radius: 999px; padding: 3px 14px; margin-bottom: 8px;
+    }
+    .insight p { font-size: 14.5px; line-height: 1.8; }
+    .insight b { color: #b91c1c; }
+
+    /* ===== table ===== */
+    table { width: 100%; border-collapse: collapse; background: #fff; font-size: 13.5px; }
+    th, td { border: 1px solid #cbd5e1; padding: 11px 14px; line-height: 1.6; vertical-align: top; }
+    th { background: #0b3a82; color: #fff; font-size: 13.5px; text-align: left; }
+    td:first-child { background: #f8fafc; font-weight: 700; width: 150px; }
+    .col-ms { color: #b45309; font-weight: 700; }
+    .col-infra { color: #047857; font-weight: 700; }
+    td b { color: #0b3a82; }
+
+    /* ===== footer ===== */
+    .footnote {
+      margin: 28px 48px 0; background: #f8fafc; border: 1.5px solid #cbd5e1;
+      border-radius: 12px; padding: 18px 24px; font-size: 13px; line-height: 1.9; color: #475569;
+    }
+    .footnote .title { font-weight: 700; color: #0b3a82; font-size: 14.5px; margin-bottom: 6px; }
+    .footer { padding: 24px 48px 32px; font-size: 11.5px; color: #94a3b8; line-height: 1.7; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>AWS × New Relic メトリクス連携の責任分界</h1>
+    <p>CloudWatch Metric Streams と newrelic-infra（ECS統合）は競合する選択肢ではなく、<b>観測している場所が違う</b>。<br>
+    Metric Streams = タスクの<b>外側</b>（AWSの外形観測の転送路）／ newrelic-infra = タスクの<b>内側</b>（エージェント直接実測・CloudWatch非経由）</p>
+  </div>
+
+  <div class="section">
+    <h2>観測エリアとデータ経路</h2>
+    <div class="zones">
+
+      <!-- AWS zone -->
+      <div class="zone zone-aws">
+        <div class="zone-label">🟠 タスクの外側 — CloudWatch 経由</div>
+        <div class="zone-sub">AWSコントロールプレーンが発行する「外形観測」メトリクス。タスクの中身（コンテナ個別）はここには無い。</div>
+        <div class="box">
+          <div class="box-title">CloudWatch</div>
+          <span class="chip"><b>AWS/ECS</b>: Service / Cluster 粒度の CPUUtilization・MemoryUtilization（予約比 %）・runningCount</span>
+          <span class="chip"><b>ECS/ContainerInsights</b>: Task 粒度の CpuUtilized / MemoryUtilized 等 <span class="note">※別途有効化・追加課金</span></span>
+          <span class="chip"><b>周辺サービス</b>: ALB / API Gateway / MSK / Lambda / RDS … CloudWatch にある物すべて</span>
+        </div>
+        <div class="flow-arrow"><span class="arr">▼</span>CloudWatch Metric Streams（push・準リアルタイム）</div>
+        <div class="box" style="text-align:center;"><div class="box-title" style="margin-bottom:0;">Kinesis Data Firehose</div></div>
+        <div class="polling-note">
+          <b>API Polling（レガシー・pull型 5分間隔）</b>: 公式の EOL 宣言は未発表だが、新規セットアップは Metric Streams が標準。
+          現在は Metric Streams 非対応の4サービス（CloudTrail / Health / Trusted Advisor / X-Ray）専用の補完手段。
+        </div>
+      </div>
+
+      <!-- Task zone -->
+      <div class="zone zone-task">
+        <div class="zone-label">🟢 タスクの内側 — エージェント直接収集</div>
+        <div class="zone-sub">タスク内に同居するエージェントが実測し、<b>CloudWatchを通らず</b> New Relic へ直送する。</div>
+        <div class="task-box">
+          <div class="box-title">ECS Task（Fargate はサイドカー必須 / EC2 は daemon 展開可）</div>
+          <div class="containers">
+            <div class="container-box">Nginx<small>コンテナ</small></div>
+            <div class="container-box">MyApp<small>コンテナ</small><span class="apm-chip">APM agent（アプリ内部）</span></div>
+            <div class="container-box container-nr">newrelic-infra<small>サイドカー</small></div>
+          </div>
+        </div>
+        <div class="flow-arrow"><span class="arr">▼</span>コンテナ個別の CPU / メモリ / ネットワーク実測値<br>（ContainerSample / EcsClusterSample イベント・秒単位）</div>
+        <div class="box">
+          <div class="box-title">ここでしか取れないもの</div>
+          <span class="chip">タスク内の<b>コンテナ別</b>リソース消費（Nginx と MyApp を分けて見られる）</span>
+          <span class="chip">APM agent 併用で <b>APM ↔ Infra 相関</b>（サービスマップ連携）</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="merge-arrows">
+      <div class="merge-left">▼ Firehose HTTPS endpoint 経由</div>
+      <div class="merge-right">▼ エージェントから直送</div>
+    </div>
+    <div class="nr-box">
+      <div class="title">New Relic（NRDB）</div>
+      <div class="sub">Metric Streams 由来はタグが <b>tags.&lt;key&gt;</b>、API Polling 由来は <b>label.&lt;key&gt;</b> で格納される（NRQL 互換性に注意）</div>
+    </div>
+  </div>
+
+  <div class="insight">
+    <span class="tag">設計上の急所</span>
+    <p>Nginx + アプリが同居するタスクでは、CloudWatch（Container Insights 含む）に出るのは <b>Task 合算の値まで</b>。
+    「どちらのコンテナが CPU / メモリを食っているか」を New Relic 上で分解できるのは <b>newrelic-infra の ContainerSample だけ</b>。
+    逆に ALB・API Gateway・MSK など<b>タスクの外の世界</b>は newrelic-infra からは見えず、Metric Streams（CloudWatch）が唯一の経路。両者は併用が前提。</p>
+  </div>
+
+  <div class="section">
+    <h2>比較表</h2>
+    <table>
+      <tr>
+        <th>観点</th>
+        <th class="col-ms" style="color:#fde68a;">🟠 CloudWatch Metric Streams</th>
+        <th style="color:#a7f3d0;">🟢 newrelic-infra（ECS統合）</th>
+      </tr>
+      <tr>
+        <td>データ源</td>
+        <td>AWS が CloudWatch に発行した外形メトリクス</td>
+        <td>エージェント自身の実測（タスクメタデータ / Docker API 由来）。CloudWatch 非経由</td>
+      </tr>
+      <tr>
+        <td>粒度</td>
+        <td>Service / Cluster（Container Insights 有効で Task まで）。<b>コンテナ個別は不可</b></td>
+        <td><b>コンテナ個別</b>＋クラスター単位（ContainerSample / EcsClusterSample）</td>
+      </tr>
+      <tr>
+        <td>カバー範囲</td>
+        <td>ECS 以外も含む CloudWatch 全ネームスペース（ALB / API GW / MSK / Lambda…）</td>
+        <td>エージェントが居るクラスター / タスクの中だけ</td>
+      </tr>
+      <tr>
+        <td>レイテンシ</td>
+        <td>準リアルタイム（CW 発行は概ね1分解像度）</td>
+        <td>秒単位（エージェント直接収集）</td>
+      </tr>
+      <tr>
+        <td>デプロイ</td>
+        <td>AWS 側設定のみ（Firehose + Stream）。<b>タスク定義の変更不要</b>。1リージョン1 sink 制約</td>
+        <td>EC2: daemon で全ノード一括。<b>Fargate: 全タスク定義にサイドカー追記</b>（運用コスト高）</td>
+      </tr>
+      <tr>
+        <td>コスト構造</td>
+        <td>CW Metric Streams + Firehose 転送課金（CW API コール課金は不要）</td>
+        <td>エージェント無償・NR ingest 増加＋タスクの CPU / メモリを少し消費</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="footnote">
+    <div class="title">役割分担の早見</div>
+    ・<b>サービス全体の健全性・周辺リソース（ALB / MSK / API GW）</b> → Metric Streams<br>
+    ・<b>タスク内のコンテナ別リソース消費・秒単位の解像度</b> → newrelic-infra<br>
+    ・<b>アプリ内部（レスポンスタイム・エラー・分散トレース）</b> → APM 言語エージェント（infra と同居で相関表示）<br>
+    ・<b>CloudTrail / Health / Trusted Advisor / X-Ray</b> → API Polling（この4つだけは現状 Polling が唯一の手段）
+  </div>
+
+  <div class="footer">
+    出典: New Relic 公式ドキュメント（Introduction to AWS integrations / Amazon CloudWatch Metric Streams setup / Introduction to the Amazon ECS integration / Migrate from API Polling to CloudWatch Metric Streams）2026-06 時点の確認。API Polling の EOL 日程は未発表（EOL ページ掲載なし）。
+  </div>
+
+</body>
+</html>
