@@ -234,6 +234,42 @@ OOM kill        → ECS自動補充 + stopped reason検知で通知
 - ヘルスチェック自己診断はアプリにエンドポイント実装が必要（WorkingSet vs 上限を自己申告、閾値に±数%のジッタを入れて一斉自爆を防ぐ）。Phase 2でよい
 - **Step発火回数をメトリクス化する**こと。月に何度も発火する状態は「器が小さい」シグナルなので、自動増援で隠さずタスクMEM増量に回す
 
+## 公式引用集（説明資料用）
+
+出典は主に ECS Best Practices Guide「Optimizing Amazon ECS service auto scaling」
+（https://docs.aws.amazon.com/AmazonECS/latest/developerguide/capacity-autoscaling-best-practice.html）
+と Application Auto Scaling User Guide
+（https://docs.aws.amazon.com/autoscaling/application/userguide/target-tracking-scaling-policy-overview.html）。
+
+**① MEMスケーリング非推奨（GCランタイム、.NET名指し）** — 「MEMでスケールしない」根拠スライド用
+
+> "as with Java, we don't recommend scaling these applications based on memory, because their observed average memory utilization is often uncorrelated with throughput or concurrency."
+> （訳: Javaと同様、**.NETやRuby等のGCランタイムをメモリでスケールさせることは推奨しない**。観測される平均メモリ使用率がスループットや同時実行数と無相関になることが多いため）
+
+**② メモリを解放しないアプリへの明示的非推奨** — 同上の補強
+
+> "Some memory-bound applications don't free the memory that's associated with a request when it ends, so that a reduction in concurrency doesn't result in a reduction in the memory used. For this, we don't recommend that you use memory-based scaling."
+> （訳: リクエスト終了後もメモリを解放しないアプリは、同時実行数が減ってもメモリが減らない。**この場合メモリベースのスケーリングは推奨しない**）
+
+**③ スケーリングメトリクスの適格条件（比例性）** — メトリクス選定の判断軸スライド用
+
+> "The metric value must scale in proportion to capacity. (...) So, doubling the number of tasks should cause the metric to decrease by 50%."
+> （訳: メトリクスは容量に比例して変化しなければならない。**タスク数を2倍にしたらメトリクスは50%下がるべき**）
+
+**④ 複数target trackingポリシーのスケールイン条件** — MEMをtarget trackingに足すと何が起きるかの根拠
+
+> "It will scale out the scalable target if any of the target tracking policies are ready for scale out, but will scale in only if all of the target tracking policies (with the scale-in portion enabled) are ready to scale in."
+> （訳: スケールアウトはいずれか1つのポリシー条件で発動するが、**スケールインは全ポリシーの条件が揃わないと発動しない**）
+
+**⑤ CPU飽和の観測例（70-80%）** — 劣化開始点70〜75%の傍証
+
+> "if CPU utilization increases from 0% to 70-80% as you add load, then stays at that level after you add even more load, then it's safe to say that the CPU is saturated."
+> （訳: 負荷を足してもCPUが70-80%で頭打ちになるなら、CPUは飽和していると判断してよい）
+
+**注意点2つ**:
+- 「常時使用率50〜60%が効率的」という**数値の明文推奨はAWS公式にはない**。公式の立場は「比例性のあるメトリクスを選び、目標値はロードテストとSLOから導く」。数値目安は業界慣行として提示し、出典は付けない（付けると捏造になる）
+- 公式は「CPUバウンドでなければ平均スループット/平均同時実行でスケールせよ」とも書いている。**「うちはCPUバウンドなのか」という質疑が来うる**。回答ライン: 実測回帰でCPUと負荷の相関（R²）を確認済みのためCPUで成立する。CPUが追従しない事態はレイテンシ/ThreadPool系の検知で別途拾う
+
 ## 最終的に埋めるべき設計値
 
 | 設計値 | 出どころ |
