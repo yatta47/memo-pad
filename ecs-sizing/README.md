@@ -51,6 +51,21 @@ MEMは方式問わず外挿しない（.NET GCは流入に比例しない）。�
 - Task数が期間中に変動していても、#2は総消費CPU（×Task数済み）、#1はTG実測なので回帰は壊れない。
 - 回帰期間に**デプロイ直後・障害時間帯が混ざると単価が歪む**。既知の異常時間帯は除外して実行する。
 
+## 0. 環境設定値の調べ方（ecs-sizing-discover.sh）
+
+`ecs-sizing-metrics.sh` に書く CLUSTER / SERVICE / ALB / TG_ECS は、同ディレクトリの
+`ecs-sizing-discover.sh` で段階的に絞り込んで取得する。
+
+```bash
+./ecs-sizing-discover.sh -p <profile>                            # 1) クラスタ一覧
+./ecs-sizing-discover.sh -p <profile> -c <cluster>               # 2) サービス一覧
+./ecs-sizing-discover.sh -p <profile> -c <cluster> -s <service>  # 3) ALB/TG解決
+```
+
+3段目は `CLUSTER="..."` 形式でそのまま貼れる値を出力する。B/G構成でTGが2本ある場合は
+両方表示し、末尾の検算（直近3時間のRequestCount合計）で**現用側のTG**を見分けられる
+（0 reqの方が待機側）。
+
 ## 1. メトリクス収集スクリプト（#1〜#7を一括）
 
 同ディレクトリの `ecs-sizing-metrics.sh` を使う。20%期・50%期・直近14日の3窓を1回の実行でまとめて取得する。
