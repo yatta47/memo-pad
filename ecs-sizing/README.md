@@ -233,7 +233,9 @@ MEM Stepの設計理由（経緯の要約）:
 OOM kill        → ECS自動補充 + stopped reason検知で通知
 ```
 
-- ヘルスチェック自己診断はアプリにエンドポイント実装が必要（WorkingSet vs 上限を自己申告、閾値に±数%のジッタを入れて一斉自爆を防ぐ）。Phase 2でよい
+- 95%の自動洗い替えは**アプリ改修不要**で2通り:
+  - 本命: **夜間の定期洗い替え** — EventBridge Schedulerから `ecs:UpdateService(forceNewDeployment)` を直接呼ぶ（Lambda不要）。閉塞中＝トラフィックゼロの窓で全タスクを新品化し、メモリの複数日蓄積を設計から消す。夜のスケジュール縮小で大半は自然に日次洗い替えされており、夜間min生存分のケアが主目的
+  - 補助: **タスク定義healthCheckでcgroupを読む** — `CMD-SHELL` でコンテナ自身の `/sys/fs/cgroup/memory.current` / `memory.max` を比較し95%超でunhealthy → ECSが自動入替。タスク定義のみで完結。要stg検証: イメージにshell/catがあること・Fargateバージョンでのcgroupパス。閾値ジッタ±数%で一斉自爆を防ぐ
 - **Step発火回数をメトリクス化する**こと。月に何度も発火する状態は「器が小さい」シグナルなので、自動増援で隠さずタスクMEM増量に回す
 
 ## 公式引用集（説明資料用）
