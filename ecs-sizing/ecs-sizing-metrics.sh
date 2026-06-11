@@ -35,7 +35,8 @@ done
 CLUSTER="my-cluster"
 SERVICE="my-service"
 ALB="app/my-alb/0123456789abcdef"            # ALB ARNの "app/" 以降
-TG_ECS="targetgroup/my-ecs-tg/0123456789ab"  # ECS側TGの "targetgroup/" 以降
+# ECS側TGの "targetgroup/" 以降。B/G構成は現用・待機の両方をカンマ区切りで書く（合算される）
+TG_ECS="targetgroup/my-ecs-tg-1/0123456789ab,targetgroup/my-ecs-tg-2/ba9876543210"
 
 # 取得窓: ラベル|開始|終了|Period秒
 #   - 15日より古い窓は1分粒度が消えているので 300 にする
@@ -66,6 +67,20 @@ mkdir -p "$OUTDIR"
 for WIN in "${WINDOWS[@]}"; do
   IFS='|' read -r LABEL START END PERIOD <<< "$WIN"
 
+  # TG_ECS（カンマ区切り可）→ TGごとのメトリクス定義と合算式を組み立てる
+  # 待機側TGはデータが無い期間があるため FILL(...,0) で0埋めして合算する
+  TG_QUERIES=""
+  REQ_EXPR=""
+  TG_INDEX=0
+  OLDIFS="$IFS"; IFS=','
+  for TG in $TG_ECS; do
+    TG_QUERIES="${TG_QUERIES}{\"Id\":\"req_tg${TG_INDEX}\",\"ReturnData\":false,\"MetricStat\":{\"Metric\":{\"Namespace\":\"AWS/ApplicationELB\",\"MetricName\":\"RequestCount\",\"Dimensions\":[{\"Name\":\"TargetGroup\",\"Value\":\"${TG}\"},{\"Name\":\"LoadBalancer\",\"Value\":\"${ALB}\"}]},\"Period\":${PERIOD},\"Stat\":\"Sum\"}},"
+    if [ -n "$REQ_EXPR" ]; then REQ_EXPR="${REQ_EXPR}+"; fi
+    REQ_EXPR="${REQ_EXPR}FILL(req_tg${TG_INDEX},0)"
+    TG_INDEX=$((TG_INDEX+1))
+  done
+  IFS="$OLDIFS"
+
   MDQ="$OUTDIR/$LABEL.query.json"
   cat > "$MDQ" <<EOF
 [
@@ -73,7 +88,8 @@ for WIN in "${WINDOWS[@]}"; do
   {"Id":"cpu_task","MetricStat":{"Metric":{"Namespace":"ECS/ContainerInsights","MetricName":"CpuUtilized","Dimensions":[{"Name":"ClusterName","Value":"${CLUSTER}"},{"Name":"ServiceName","Value":"${SERVICE}"}]},"Period":${PERIOD},"Stat":"Average"}},
   {"Id":"tasks","MetricStat":{"Metric":{"Namespace":"ECS/ContainerInsights","MetricName":"RunningTaskCount","Dimensions":[{"Name":"ClusterName","Value":"${CLUSTER}"},{"Name":"ServiceName","Value":"${SERVICE}"}]},"Period":${PERIOD},"Stat":"Average"}},
   {"Id":"total_cpu","Expression":"cpu_task * tasks","Label":"TotalCpuUnits"},
-  {"Id":"req_ecs","MetricStat":{"Metric":{"Namespace":"AWS/ApplicationELB","MetricName":"RequestCount","Dimensions":[{"Name":"TargetGroup","Value":"${TG_ECS}"},{"Name":"LoadBalancer","Value":"${ALB}"}]},"Period":${PERIOD},"Stat":"Sum"}},
+  ${TG_QUERIES}
+  {"Id":"req_ecs","Expression":"${REQ_EXPR}","Label":"EcsReqSum"},
   {"Id":"alb_req","MetricStat":{"Metric":{"Namespace":"AWS/ApplicationELB","MetricName":"RequestCount","Dimensions":[{"Name":"LoadBalancer","Value":"${ALB}"}]},"Period":${PERIOD},"Stat":"Sum"}},
   {"Id":"mem_task","MetricStat":{"Metric":{"Namespace":"ECS/ContainerInsights","MetricName":"MemoryUtilized","Dimensions":[{"Name":"ClusterName","Value":"${CLUSTER}"},{"Name":"ServiceName","Value":"${SERVICE}"}]},"Period":${PERIOD},"Stat":"Maximum"}}
 ]

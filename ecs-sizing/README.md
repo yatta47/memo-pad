@@ -48,6 +48,7 @@ MEMは方式問わず外挿しない（.NET GCは流入に比例しない）。�
 - **Container Insights の performance ロググループ（Q-A/Q-B用）はretention次第で古いデータが消えている**。先に確認:
   `aws logs describe-log-groups --log-group-name-prefix /aws/ecs/containerinsights/ --query 'logGroups[].[logGroupName,retentionInDays]'`
 - ディメンション形式: `LoadBalancer` は ARN の `app/` 以降、`TargetGroup` は `targetgroup/` 以降。
+- **B/G構成は `TG_ECS` に現用・待機の両方をカンマ区切りで指定**（FILLで0埋め合算するので、期間中にスワップを跨いでも正しく取れる）。TGの値は `ecs-sizing-discover.sh` の3段目の出力をコピーする。**req_ecsが空のまま（回帰が「有効データ点が不足」）の場合はTG指定が現用TGとズレている**ので、discoverの末尾の検算（TG別の直近リクエスト数）で確認する。
 - Task数が期間中に変動していても、#2は総消費CPU（×Task数済み）、#1はTG実測なので回帰は壊れない。
 - 回帰期間に**デプロイ直後・障害時間帯が混ざると単価が歪む**。既知の異常時間帯は除外して実行する。
 
