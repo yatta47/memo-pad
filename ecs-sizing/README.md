@@ -149,6 +149,24 @@ filter Type = "Container" and TaskDefinitionFamily = "<FAMILY>"
 | sort day asc
 ```
 
+注意: `bin(1d)` の日付境界は**UTC**（JSTの朝9時区切り）。JSTの日次＋営業時間帯（7:00〜23:00）で
+取るならこちらを使う（期間ピッカーは対象日数分を広めに指定）:
+
+```
+fields toMillis(@timestamp) + 32400000 as jst_ms
+| fields floor((jst_ms % 86400000) / 3600000) as jst_hour,
+         datefloor(fromMillis(jst_ms), 1d) as jst_day
+| filter Type = "Container" and TaskDefinitionFamily = "<FAMILY>"
+| filter jst_hour >= 7 and jst_hour < 23
+| stats max(MemoryUtilized) as mem_max_MB,
+        pct(MemoryUtilized, 95) as mem_p95_MB
+  by ContainerName, jst_day
+| sort jst_day asc
+```
+
+（toMillisでエポックms化→+9h、%86400000でその日の経過ms→時を抽出。`jst_day` はJSTの日付として読む。
+1日だけ見るならクエリを変えず、期間ピッカーのCustom→Absoluteでローカルタイム07:00〜23:00を指定する方が簡単）
+
 **Q-B: コンテナ別CPU内訳（#9、5コンテナ同居の頭打ち確認）**
 
 サイドカーの固定消費が大きいほど、タスクCPU%はトラフィックに比例しにくく
