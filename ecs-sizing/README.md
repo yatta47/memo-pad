@@ -187,6 +187,33 @@ aws cloudwatch get-metric-statistics --namespace AWS/ApplicationELB \
 
 直近にスケールイベントがなければ、stg環境で `aws ecs update-service --desired-count +1` を打って計測する（本番でやらない）。
 
+## スケーリングポリシー構成（設計合意版 2026-06-11）
+
+CPUとMEMで**方式を分ける**。同じApplication Auto Scalingの傘の下で、Target Tracking（目標値を渡すとAWSが台数を比例計算）とStep Scaling（アラーム発火で固定数を増減）を併用する。
+
+| ポリシー | 方式 | 設定 | 役割 |
+|---|---|---|---|
+| CPU | **Target Tracking** | ターゲット50〜60%。スケールインのクールダウンはアウトより長く（アウトだけ攻める） | 容量の主役。負荷に追従 |
+| MEM | **Step Scaling（アウト専用）** | `AWS/ECS MemoryUtilization` **Maximum統計** > 92% で **+1台**。クールダウン15〜30分。イン方向は定義しない | 個体危篤時の先回り増援 |
+| 時刻 | Scheduled | 開放（朝）前にminを引き上げ。夜間閉塞時は**minとmaxの両方**を落とす | 段差はスケジュールで受ける |
+
+MEM Stepの設計理由（経緯の要約）:
+- Target TrackingでのMEMはAWS公式が.NET名指しで非推奨（平均メモリは負荷と無相関・比例制御の前提が壊れる・複数target tracking時のスケールイン封鎖）
+- Step×Maximum×アウト専用にすると上記が全部回避される: 比例計算をしない / 平均でなく個体を見る / イン側に干渉しない
+- 増援は膨らんだ個体を救わない（OOM後の頭数を先回り確保する保険）。救う側は下記の洗い替えが担当
+
+### MEMの閾値の階段（スケールとアラートの全体像）
+
+```
+85%（個体Max）  → 通知（人: 器のサイズ見直し判断の材料）
+92%（個体Max）  → Step Scalingで+1台（先回り増援）
+95%（自己診断）  → コンテナヘルスチェックでunhealthy → ECSが自動洗い替え
+OOM kill        → ECS自動補充 + stopped reason検知で通知
+```
+
+- ヘルスチェック自己診断はアプリにエンドポイント実装が必要（WorkingSet vs 上限を自己申告、閾値に±数%のジッタを入れて一斉自爆を防ぐ）。Phase 2でよい
+- **Step発火回数をメトリクス化する**こと。月に何度も発火する状態は「器が小さい」シグナルなので、自動増援で隠さずタスクMEM増量に回す
+
 ## 最終的に埋めるべき設計値
 
 | 設計値 | 出どころ |
