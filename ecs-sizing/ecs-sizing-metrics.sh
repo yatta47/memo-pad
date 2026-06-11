@@ -166,6 +166,27 @@ if hod:
         print(f"[ピーク/谷比] {peak/valley:.2f}  (peak={peak:.0f} / valley={valley:.0f} CPU units)")
     for h, v in sorted(hourly.items()):
         print(f"   {h:02d}時 {'#' * int(40 * v / peak)} {v:.0f}")
+
+# --- CSV出力（1行=1時点のtidy形式。M365 Copilot / Excel での分析用）---
+import csv
+cols = [
+    ("ecs_rps",          {t: v / PERIOD for t, v in req_m.items()}),
+    ("total_cpu_units",  tot_m),
+    ("task_count",       smap("tasks")),
+    ("task_cpu_avg_units", smap("cpu_task")),
+    ("svc_cpu_pct",      smap("svc_cpu")),
+    ("task_mem_max_mb",  smap("mem_task")),
+    ("alb_total_rps",    {t: v / PERIOD for t, v in smap("alb_req").items()}),
+]
+all_ts = sorted(set().union(*[set(m) for _, m in cols]))
+out_csv = os.environ["METRICS_JSON"].rsplit(".", 1)[0] + ".csv"
+with open(out_csv, "w", newline="") as f:
+    w = csv.writer(f)
+    w.writerow(["timestamp_jst"] + [c for c, _ in cols])
+    for t in all_ts:
+        jst = datetime.datetime.fromisoformat(t).astimezone(JST).strftime("%Y-%m-%d %H:%M:%S")
+        w.writerow([jst] + [round(m[t], 3) if t in m else "" for _, m in cols])
+print(f"[CSV] {out_csv} ({len(all_ts)}行)  ※Copilot等での分析にはこれを渡す")
 PY
   echo
 done

@@ -76,8 +76,29 @@ MEMは方式問わず外挿しない（.NET GCは流入に比例しない）。�
 - 窓ごとのPeriodは、15日以内なら `60`、それより古い窓は `300`（1分粒度の保持期限）
 
 出力は窓ごとに「回帰（単価a / 固定消費b / R²）・全体ピークRPS・総消費CPU・タスクMEM・
-8分窓最大上昇幅・時間帯別カーブとピーク/谷比」。生データは `./ecs-sizing-out/<label>.json`
-に残るので再分析できる。
+8分窓最大上昇幅・時間帯別カーブとピーク/谷比」。生データは `./ecs-sizing-out/<label>.json`、
+**分析用のtidy形式CSVが `./ecs-sizing-out/<label>.csv`** に残る。
+
+### M365 Copilot / Excel で分析する場合
+
+CSV（1行=1時点）を渡す。生JSON（タイムスタンプ配列と値配列が分離した形式）は渡さない。
+
+| 列 | 内容 |
+|---|---|
+| `timestamp_jst` | JST時刻 |
+| `ecs_rps` | ECS側TGのリクエスト/秒（回帰の説明変数） |
+| `total_cpu_units` | サービス総消費CPU units、1024=1vCPU（回帰の目的変数） |
+| `task_count` / `task_cpu_avg_units` | Task数 / タスク平均消費 |
+| `svc_cpu_pct` | サービスCPU%（アラームが見るのと同じ値） |
+| `task_mem_max_mb` | タスクMEM最大 |
+| `alb_total_rps` | ALB全体リクエスト/秒（EC2+ECS合算） |
+
+- 1分粒度×1週間で約10,000行。**Copilot チャットへの直接添付は行数でサンプリングされる
+  ことがある**ので、Excelで開いてテーブル化 → Excel内のCopilot（Pythonによる高度な分析）に
+  かけるのが確実。チャットに渡すならピーク帯だけに絞ったCSVにする
+- プロンプト例:
+  `total_cpu_units = a × ecs_rps + b の線形回帰でa・b・R²を出して。時間帯による傾きの違いと外れ値も教えて`
+- 回帰のa/b/R²はスクリプト自身も出力するので、Copilot側の結果と突き合わせると検算になる
 
 ### 結果から設計値への変換
 
