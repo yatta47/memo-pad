@@ -36,6 +36,12 @@ MEMは方式問わず外挿しない（.NET GCは流入に比例しない）。�
 
 ## 前提・注意（先に読む）
 
+- **Container Insightsは標準でよい（enhanced observability＝拡張は不要）**。本キットが使うのは
+  - `ECS/ContainerInsights` のサービス集約メトリクス（CpuUtilized / MemoryUtilized / RunningTaskCount）→ **標準CIで出力される**
+  - performanceロググループの `Type="Container"` レコード（Q-A/Q-B）→ **これも標準CIで出力される**（公式リファレンスのログイベント例に Type: Container が含まれる）
+  - 拡張が追加するのは「コンテナ単位の**CloudWatchメトリクス化**（ContainerNameディメンション付きメトリクス）」とrestart/health系。サイジング・スケーリング設計には不要
+- スケーリングのアラームに使うのは `AWS/ECS CPUUtilization` か `AWS/ApplicationELB RequestCountPerTarget` で、**どちらもContainer Insightsに依存しない**（CI全OFFでも動く）
+- 参考: 仮にCIが全OFFでも `AWS/ECS CPUUtilization` の **Average × SampleCount（≒タスク数）× 1024** で総消費CPU unitsは近似できる。標準CIがあるなら不要
 - **1分粒度メトリクスは15日で消える**（以降5分に丸め、63日で1時間）。
   - 20%期間が15日以上前なら `PERIOD=300`。回帰の点数は減るが5分平均同士の回帰でも単価は出る。
   - #6（上昇速度）だけは1分粒度必須 → 直近14日以内で取る。
@@ -50,12 +56,24 @@ MEMは方式問わず外挿しない（.NET GCは流入に比例しない）。�
 同ディレクトリの `ecs-sizing-metrics.sh` を使う。20%期・50%期・直近14日の3窓を1回の実行でまとめて取得する。
 
 ```bash
-# 1) スクリプト内の「環境設定」(CLUSTER/SERVICE/ALB/TG_ECS) と「取得窓」(WINDOWS) を書き換える
-# 2) aws-vault のプロファイル名を指定して実行
+# 1) スクリプト内の「環境設定」(CLUSTER/SERVICE/ALB/TG_ECS) を書き換える
+# 2) 時間窓は「取得窓」(WINDOWS配列) の日付を書き換えるか、-w で都度指定
 ./ecs-sizing-metrics.sh -p <aws-vaultプロファイル名>
+
+# -w "ラベル|開始|終了|Period秒" で時間窓をコマンドラインから指定（複数可、指定時はWINDOWS配列を無視）
+./ecs-sizing-metrics.sh -p myprofile \
+  -w "phase20|2026-05-12T00:00:00+09:00|2026-05-19T00:00:00+09:00|300" \
+  -w "phase50|2026-06-02T00:00:00+09:00|2026-06-09T00:00:00+09:00|60"
 
 # -p 省略時は AWS_VAULT_PROFILE 環境変数 → それも無ければ素の aws cli で実行
 ```
+
+時間窓の指定について:
+
+- 開始/終了はISO 8601（`+09:00` 付きでJST指定可）。`get-metric-data` にそのまま渡る
+- **回帰用の窓はピーク帯に絞らず、平日を含む数日〜1週間をまるごと指定してよい**。
+  回帰は負荷の高低それぞれの点があるほど傾き・切片が安定する（絞るのは2点比較をする場合だけ）
+- 窓ごとのPeriodは、15日以内なら `60`、それより古い窓は `300`（1分粒度の保持期限）
 
 出力は窓ごとに「回帰（単価a / 固定消費b / R²）・全体ピークRPS・総消費CPU・タスクMEM・
 8分窓最大上昇幅・時間帯別カーブとピーク/谷比」。生データは `./ecs-sizing-out/<label>.json`

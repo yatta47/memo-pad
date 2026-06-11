@@ -5,9 +5,15 @@
 # 要: aws cli v2, python3（aws-vault は任意）。Bash 3.2 互換。
 #
 # 使い方:
-#   1) 下の「環境設定」「取得窓」を書き換える
-#   2) ./ecs-sizing-metrics.sh -p <aws-vaultプロファイル名>
+#   1) 下の「環境設定」を書き換える
+#   2) 時間窓は「取得窓」(WINDOWS配列) の日付を書き換えるか、-w で都度指定する
+#   3) ./ecs-sizing-metrics.sh -p <aws-vaultプロファイル名>
 #      -p 省略時は AWS_VAULT_PROFILE 環境変数、それも無ければ素の aws で実行
+#
+#   -w "ラベル|開始|終了|Period秒" で時間窓をコマンドラインから指定（複数可）。
+#   -w を1つでも指定すると WINDOWS 配列は無視される。例:
+#     ./ecs-sizing-metrics.sh -p myprofile \
+#       -w "phase50|2026-06-02T00:00:00+09:00|2026-06-09T00:00:00+09:00|60"
 #
 # 出力:
 #   標準出力       … 窓ごとの回帰(単価a/固定消費b/R2)・ピークRPS・MEM・上昇幅・カーブ
@@ -15,10 +21,12 @@
 set -euo pipefail
 
 PROFILE="${AWS_VAULT_PROFILE:-}"
-while getopts "p:h" opt; do
+CLI_WINDOWS=()
+while getopts "p:w:h" opt; do
   case "$opt" in
     p) PROFILE="$OPTARG" ;;
-    h) sed -n '2,15p' "$0"; exit 0 ;;
+    w) CLI_WINDOWS+=("$OPTARG") ;;
+    h) sed -n '2,20p' "$0"; exit 0 ;;
     *) exit 1 ;;
   esac
 done
@@ -38,6 +46,11 @@ WINDOWS=(
   "recent14d|2026-05-28T00:00:00+09:00|2026-06-11T00:00:00+09:00|60"
 )
 # =================================
+
+# -w 指定があればそちらを優先
+if [ ${#CLI_WINDOWS[@]} -gt 0 ]; then
+  WINDOWS=("${CLI_WINDOWS[@]}")
+fi
 
 awscli() {
   if [ -n "$PROFILE" ]; then
