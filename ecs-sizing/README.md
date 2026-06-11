@@ -133,6 +133,44 @@ CSV（1行=1時点）を渡す。生JSON（タイムスタンプ配列と値配�
   （5コンテナ同居の頭打ち等）への保険は、req基準への切替ではなくレイテンシ/ThreadPool系の
   検知アラートで張る。
 
+## 1.5 MEM Step増援のTerraform（statistic=Maximumが急所）
+
+「閾値はサービス単位なのに個体の92%に届くのか」への答え: `AWS/ECS MemoryUtilization` はサービスディメンション配下に**タスクごとのサンプル**が毎分積まれるため、アラームの `statistic = "Maximum"` で「最も膨らんだ個体」が見える（Averageだと隠れて届かない）。
+
+```hcl
+resource "aws_appautoscaling_policy" "mem_step_out" {
+  name               = "${var.service_name}-mem-emergency-out"
+  policy_type        = "StepScaling"
+  service_namespace  = "ecs"
+  resource_id        = "service/${var.cluster_name}/${var.service_name}"
+  scalable_dimension = "ecs:service:DesiredCount"
+  step_scaling_policy_configuration {
+    adjustment_type         = "ChangeInCapacity"
+    cooldown                = 1800        # 高止まり中の連続発火を抑制
+    metric_aggregation_type = "Maximum"
+    step_adjustment {
+      metric_interval_lower_bound = 0
+      scaling_adjustment          = 1     # +1台のみ。イン方向は書かない（減らす事故を起こせない）
+    }
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "mem_individual_max" {
+  alarm_name          = "${var.service_name}-mem-individual-max-gt92"
+  namespace           = "AWS/ECS"
+  metric_name         = "MemoryUtilization"
+  dimensions          = { ClusterName = var.cluster_name, ServiceName = var.service_name }
+  statistic           = "Maximum"   # ★Averageだと個体が隠れて発火しない
+  period              = 60
+  evaluation_periods  = 3
+  threshold           = 92
+  comparison_operator = "GreaterThanThreshold"
+  alarm_actions       = [aws_appautoscaling_policy.mem_step_out.arn]
+}
+```
+
+レビューの急所: ①statistic=Maximum ②step_adjustmentはプラス1個だけ ③cooldown長め。
+
 ## 2. Logs Insights クエリ（コンテナ単位）
 
 ロググループ: `/aws/ecs/containerinsights/<CLUSTER>/performance`
