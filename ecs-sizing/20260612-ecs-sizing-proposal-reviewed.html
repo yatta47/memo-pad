@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ECSサイジング・スケーリング設計提案（レビュー反映版）</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: { sans: ['"Noto Sans JP"', 'system-ui', 'sans-serif'] },
+    },
+  },
+}
+</script>
+<style>
+  body { background:#e2e8f0; }
+  .slide {
+    aspect-ratio: 16 / 9;
+    max-width: 1280px;
+    margin: 24px auto;
+    background: #ffffff;
+    box-shadow: 0 4px 24px rgba(15,23,42,.12);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  #page-counter {
+    position: fixed; bottom: 16px; right: 24px;
+    background: rgba(15,23,42,.75); color:#fff;
+    padding: 4px 12px; border-radius: 9999px; font-size: 12px;
+    font-family: "Noto Sans JP", system-ui, sans-serif;
+    z-index: 50;
+  }
+  @media print {
+    body { background:#fff; }
+    .slide { break-inside: avoid; page-break-after: always; margin:0 auto; box-shadow:none; border-radius:0; }
+    #page-counter { display:none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ 1. 表紙 ============ -->
+<div class="slide flex flex-col justify-center items-center p-12 relative" id="slide-1">
+  <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-600 via-sky-500 to-emerald-400"></div>
+  <p class="text-sm tracking-widest text-indigo-600 font-bold mb-4">EC2 → ECS 段階移行</p>
+  <h1 class="text-5xl font-bold text-slate-800 text-center leading-tight">ECSサイジング・<br>スケーリング設計の提案</h1>
+  <p class="mt-6 text-lg text-slate-500">CPUは回帰で予測、MEMは実測ピーク＋余裕で守る 100%移行計画</p>
+  <div class="mt-10 flex gap-3">
+    <span class="px-4 py-1.5 rounded-full bg-slate-100 text-slate-600 text-sm">2026-06</span>
+    <span class="px-4 py-1.5 rounded-full bg-emerald-100 text-emerald-700 text-sm font-bold">レビュー反映版（6/9〜6/11 営業時間帯）</span>
+  </div>
+</div>
+
+<!-- ============ 2. 決めたいこと ============ -->
+<div class="slide flex flex-col p-12" id="slide-2">
+  <p class="text-xs tracking-widest text-indigo-600 font-bold">1. AGENDA</p>
+  <h2 class="text-3xl font-bold text-slate-800 mt-1">この資料で決めたいこと <span class="text-indigo-600">4つ</span></h2>
+  <div class="grid grid-cols-2 gap-5 mt-8 flex-1">
+    <div class="rounded-xl border-2 border-indigo-200 bg-indigo-50/50 p-6 flex flex-col">
+      <div class="flex items-center gap-3">
+        <span class="w-9 h-9 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold">1</span>
+        <h3 class="text-xl font-bold text-slate-800">ベーススペック</h3>
+      </div>
+      <p class="mt-3 text-slate-600 text-sm leading-relaxed">タスク1台あたりのCPU / メモリ。<br>FargateはCPUとMEMを<b>独立に</b>選べる。</p>
+      <p class="mt-auto text-indigo-700 font-bold text-sm">→ §予測・§推奨</p>
+    </div>
+    <div class="rounded-xl border-2 border-sky-200 bg-sky-50/50 p-6 flex flex-col">
+      <div class="flex items-center gap-3">
+        <span class="w-9 h-9 rounded-full bg-sky-600 text-white flex items-center justify-center font-bold">2</span>
+        <h3 class="text-xl font-bold text-slate-800">ベース台数（min / max）</h3>
+      </div>
+      <p class="mt-3 text-slate-600 text-sm leading-relaxed">常時稼働の台数。<b>N-1冗長</b>（1台落ちても残りで捌ける）を満たす下限を設定。</p>
+      <p class="mt-auto text-sky-700 font-bold text-sm">→ §予測・§推奨</p>
+    </div>
+    <div class="rounded-xl border-2 border-emerald-200 bg-emerald-50/50 p-6 flex flex-col">
+      <div class="flex items-center gap-3">
+        <span class="w-9 h-9 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold">3</span>
+        <h3 class="text-xl font-bold text-slate-800">スケーリング方式と閾値</h3>
+      </div>
+      <p class="mt-3 text-slate-600 text-sm leading-relaxed">CPU=Target Tracking / MEM=Step（増援専用）の役割分担と、発火ライン。</p>
+      <p class="mt-auto text-emerald-700 font-bold text-sm">→ §推奨</p>
+    </div>
+    <div class="rounded-xl border-2 border-amber-200 bg-amber-50/50 p-6 flex flex-col">
+      <div class="flex items-center gap-3">
+        <span class="w-9 h-9 rounded-full bg-amber-500 text-white flex items-center justify-center font-bold">4</span>
+        <h3 class="text-xl font-bold text-slate-800">移行イベント時の運用</h3>
+      </div>
+      <p class="mt-3 text-slate-600 text-sm leading-relaxed">流入80%・100%切替を<b>検証ゲート</b>として使う計画。事前増設・観測・戻し条件。</p>
+      <p class="mt-auto text-amber-700 font-bold text-sm">→ §移行計画</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 3. 一般的な目安 ============ -->
+<div class="slide flex flex-col p-12" id="slide-3">
+  <p class="text-xs tracking-widest text-indigo-600 font-bold">2. BASELINE</p>
+  <h2 class="text-3xl font-bold text-slate-800 mt-1">リソース効率の一般的な目安</h2>
+  <p class="text-slate-500 text-sm mt-1">CPUとMEMで「効率の測り方」が違う — CPUは使用率の帯、MEMは崖からの距離</p>
+
+  <div class="flex-1 flex flex-col justify-evenly">
+  <div>
+    <div class="flex items-center gap-3 mb-2">
+      <span class="font-bold text-slate-700 w-14">CPU</span>
+      <span class="text-xs text-slate-400">超えても遅くなるだけ（攻められる資源）</span>
+    </div>
+    <div class="flex h-12 rounded-lg overflow-hidden text-xs font-bold text-white text-center">
+      <div class="bg-slate-300 flex items-center justify-center" style="width:30%">〜30% 遊ばせすぎ</div>
+      <div class="bg-sky-400 flex items-center justify-center" style="width:20%">30〜50%</div>
+      <div class="bg-emerald-500 flex items-center justify-center" style="width:15%">50〜65% 運用目標帯</div>
+      <div class="bg-amber-400 flex items-center justify-center" style="width:10%">〜75%</div>
+      <div class="bg-rose-500 flex items-center justify-center" style="width:25%">70-80%〜 飽和域</div>
+    </div>
+    <div class="flex text-[11px] text-slate-400 mt-1"><span style="width:65%"></span><span>▲ 劣化開始点（公式: 70-80%で頭打ちなら飽和と判断してよい）</span></div>
+  </div>
+
+  <div>
+    <div class="flex items-center gap-3 mb-2">
+      <span class="font-bold text-slate-700 w-14">MEM</span>
+      <span class="text-xs text-slate-400">上限到達で即死＝OOM kill（崖のある資源）。使用率の帯ではなく「実測ピーク＋余裕」で器を決める</span>
+    </div>
+    <div class="flex h-12 rounded-lg overflow-hidden text-xs font-bold text-center items-stretch">
+      <div class="bg-indigo-500 text-white flex items-center justify-center" style="width:55%">実測ピーク（最大値で評価）</div>
+      <div class="bg-indigo-200 text-indigo-800 flex items-center justify-center" style="width:35%">＋30〜40% ヘッドルーム</div>
+      <div class="bg-rose-500 text-white flex items-center justify-center" style="width:10%">崖</div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-2 gap-4">
+    <div class="rounded-lg bg-slate-50 border border-slate-200 p-4 text-sm">
+      <p class="font-bold text-slate-700 mb-1">業界慣行</p>
+      <p class="text-slate-600">オートスケーリング前提の常用域は CPU 50〜60%（攻めるなら〜65%）が通例。</p>
+    </div>
+    <div class="rounded-lg bg-indigo-50 border border-indigo-200 p-4 text-sm">
+      <p class="font-bold text-indigo-700 mb-1">AWS公式の立場（ECS Best Practices Guide）</p>
+      <p class="text-slate-600">数値の推奨はなく「<b>容量に比例するメトリクスを選び、目標値はロードテストとSLOから導く</b>」。タスク2倍でメトリクス半減が適格条件。</p>
+    </div>
+  </div>
+  </div>
+</div>
+
+<!-- ============ 3.5 私たちの安定の定義 ============ -->
+<div class="slide flex flex-col p-12" id="slide-3b">
+  <p class="text-xs tracking-widest text-indigo-600 font-bold">2. BASELINE ▸ OUR LINE</p>
+  <h2 class="text-3xl font-bold text-slate-800 mt-1">では、私たちはどこを「安定」と取るか</h2>
+  <p class="text-slate-500 text-sm mt-1">前提: タスクCPU%は<b>表示が100%に達する前にアプリが飽和する</b>指標。だから「安定」は100%基準ではなく自前の帯で定義する</p>
+
+  <div class="flex gap-8 mt-6 flex-1">
+    <!-- 左: 帯の定義 -->
+    <div class="flex-1">
+      <p class="text-sm font-bold text-slate-600 mb-2">CPU（サービス平均）の運用帯</p>
+      <div class="flex flex-col gap-1">
+        <div class="flex items-center gap-3 rounded-lg bg-slate-200 text-slate-500 p-2.5 text-sm"><span class="font-bold w-24">100%</span><span>表示上の天井 — <b>判定に使わない</b>（ここに来る前に飽和する）</span></div>
+        <div class="flex items-center gap-3 rounded-lg bg-rose-500 text-white p-2.5 text-sm"><span class="font-bold w-24">72%〜</span><span>劣化開始とみなす（公式: 70-80%頭打ち=飽和）</span></div>
+        <div class="flex items-center gap-3 rounded-lg bg-amber-400 text-white p-2.5 text-sm"><span class="font-bold w-24">60〜72%</span><span>増設が追いつくための余裕（17pt &gt; 実測上昇8.1pt/8分）</span></div>
+        <div class="flex items-center gap-3 rounded-lg bg-emerald-500 text-white p-2.5 text-sm"><span class="font-bold w-24">45〜60%</span><span><b>平常運転帯（安定の定義）</b>。55%でスケール発火</span></div>
+        <div class="flex items-center gap-3 rounded-lg bg-sky-200 text-sky-800 p-2.5 text-sm"><span class="font-bold w-24">〜45%</span><span>余剰。スケールインで回収（コスト最適化域）</span></div>
+      </div>
+      <p class="text-sm font-bold text-slate-600 mb-2 mt-4">MEM（タスク個体の最大値）の安定条件</p>
+      <div class="rounded-lg border border-slate-200 p-3 text-sm text-slate-600">個体最大が器の<b>70%未満</b>を平常とする（85%通知 / 92%増援 / 崖=OOM）。平均では個体の危険が見えないため<b>必ず最大値で判定</b></div>
+    </div>
+    <!-- 右: なぜ100%を見ないか -->
+    <div class="w-[440px] flex flex-col">
+      <p class="text-sm font-bold text-slate-600 mb-2">なぜ「100%」を判定に使わないのか — 3層の希釈</p>
+      <div class="flex flex-col gap-2.5">
+        <div class="rounded-lg bg-slate-50 border border-slate-200 p-3.5 text-sm"><b class="text-indigo-700">① コンテナ共有:</b> タスクCPU%は5コンテナの合算÷割当。アプリ本体が飽和してもタスク表示は85〜90%で止まりうる</div>
+        <div class="rounded-lg bg-slate-50 border border-slate-200 p-3.5 text-sm"><b class="text-indigo-700">② スレッド飽和:</b> アプリの限界はCPUサイクルより先にスレッド・同期処理で来る。<b>CPU%が上がらないままレイテンシが劣化</b>する形（実績あり）</div>
+        <div class="rounded-lg bg-slate-50 border border-slate-200 p-3.5 text-sm"><b class="text-indigo-700">③ 艦隊平均:</b> スケーリングが見るのはサービス平均。1台が熱くても8台の平均はぬるく見える</div>
+      </div>
+      <div class="mt-3 rounded-lg bg-slate-800 text-white p-3.5 text-sm">
+        <p class="font-bold text-sky-300 mb-1">補完: CPUに映らない詰まりの検知</p>
+        <p>②はCPU閾値で拾えないため、<b>p95レイテンシ／ThreadPool枯渇の検知を別系統</b>で常設し、「CPUは静かなのに遅い」を安定判定に含める</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-4 rounded-xl border-2 border-emerald-300 bg-emerald-50 p-3.5 text-sm text-slate-700">
+    <b class="text-emerald-700">安定の定義（この資料の判定基準）:</b> サービスCPUが45〜60%帯 ／ タスクMEM個体最大が70%未満 ／ p95レイテンシが基準内。<b>表示100%は判定に使わない</b>
+  </div>
+</div>
+
+<!-- ============ 4. 現状 ============ -->
+<div class="slide flex flex-col p-12" id="slide-4">
+  <p class="text-xs tracking-widest text-indigo-600 font-bold">3. CURRENT</p>
+  <h2 class="text-3xl font-bold text-slate-800 mt-1">現状の構成と数値</h2>
+
+  <div class="flex gap-8 mt-6 flex-1">
+    <!-- 構成図 -->
+    <div class="flex-1 flex flex-col items-center justify-center">
+      <div class="px-8 py-3 rounded-lg bg-slate-700 text-white font-bold">ALB</div>
+      <div class="flex gap-16 mt-2 text-slate-400 text-2xl"><span>↙</span><span>↘</span></div>
+      <div class="flex gap-8 mt-1">
+        <div class="flex flex-col items-center">
+          <span class="text-xs font-bold text-slate-400 mb-1">加重 50%</span>
+          <div class="px-6 py-3 rounded-lg bg-slate-200 text-slate-600 font-bold border-2 border-slate-300">EC2（既存）</div>
+        </div>
+        <div class="flex flex-col items-center">
+          <span class="text-xs font-bold text-indigo-500 mb-1">加重 50% ← いまここ</span>
+          <div class="px-6 py-3 rounded-lg bg-indigo-600 text-white font-bold">ECS Fargate</div>
+        </div>
+      </div>
+      <div class="mt-4 rounded-xl border-2 border-indigo-300 bg-indigo-50/30 p-3.5 w-[400px]">
+        <p class="text-xs font-bold text-indigo-600 mb-2">ECS Service ＝ タスクの束。<u>使用率はこの「束」の単位で見る</u></p>
+        <div class="flex gap-2 justify-center items-end">
+          <div class="flex flex-col items-center"><div class="relative w-12 h-20 rounded border-2 border-indigo-300 bg-white overflow-hidden"><div class="absolute bottom-0 w-full bg-indigo-500" style="height:46%"></div></div><span class="text-[9px] text-slate-400 mt-0.5">Task1</span></div>
+          <div class="flex flex-col items-center"><div class="relative w-12 h-20 rounded border-2 border-indigo-300 bg-white overflow-hidden"><div class="absolute bottom-0 w-full bg-indigo-500" style="height:38%"></div></div><span class="text-[9px] text-slate-400 mt-0.5">Task2</span></div>
+          <div class="flex flex-col items-center"><div class="relative w-12 h-20 rounded border-2 border-indigo-300 bg-white overflow-hidden"><div class="absolute bottom-0 w-full bg-indigo-500" style="height:50%"></div></div><span class="text-[9px] text-slate-400 mt-0.5">Task3</span></div>
+          <div class="flex flex-col items-center"><div class="relative w-12 h-20 rounded border-2 border-indigo-300 bg-white overflow-hidden"><div class="absolute bottom-0 w-full bg-indigo-500" style="height:41%"></div></div><span class="text-[9px] text-slate-400 mt-0.5">Task4</span></div>
+          <div class="flex flex-col items-center"><div class="relative w-12 h-20 rounded border-2 border-indigo-300 bg-white overflow-hidden"><div class="absolute bottom-0 w-full bg-indigo-500" style="height:40%"></div></div><span class="text-[9px] text-slate-400 mt-0.5">Task5</span></div>
+        </div>
+        <div class="mt-2.5 rounded bg-slate-800 text-white text-[11px] p-2 text-center font-bold">使用率 43% ＝ 5台の使用量の合計（2.2 vCPU分）÷ 確保量（1vCPU × 5台）</div>
+        <p class="text-[10px] text-slate-500 mt-1.5 leading-relaxed">各タスクの中身は5コンテナ（App本体＋Proxy・ログ転送・監視・補助）。<b>例外: MEMの危険判定だけは束の平均ではなく「個体の最大値」で見る</b>（束の平均では膨らんだ1台が隠れるため）</p>
+      </div>
+    </div>
+    <!-- 数値 -->
+    <div class="w-[420px] flex flex-col gap-3 justify-center">
+      <div class="rounded-lg border border-slate-200 p-4 flex items-center justify-between">
+        <span class="text-sm text-slate-500">タスクスペック</span>
+        <span class="text-xl font-bold text-slate-800">1 vCPU / 2 GB</span>
+      </div>
+      <div class="rounded-lg border border-slate-200 p-4 flex items-center justify-between">
+        <span class="text-sm text-slate-500">稼働台数（流入50%時）</span>
+        <span class="text-xl font-bold text-slate-800">5 台（6/11 10:30〜 6台）</span>
+      </div>
+      <div class="rounded-lg border border-slate-200 p-4 flex items-center justify-between">
+        <span class="text-sm text-slate-500">CPU使用率（ピーク帯 p95・確保5vCPU比）</span>
+        <span class="text-xl font-bold text-slate-800">43%（2.2 vCPU分）</span>
+      </div>
+      <div class="rounded-lg border-2 border-rose-200 bg-rose-50/40 p-4 flex items-center justify-between">
+        <span class="text-sm text-slate-500">MEM使用量（タスク最大）</span>
+        <span class="text-xl font-bold text-rose-600">1,713 MB / 2,048 MB（84%）</span>
+      </div>
+      <div class="rounded-lg bg-slate-50 border border-slate-200 p-4 text-xs text-slate-500">
+        営業時間帯 7:00〜23:00（夜間は閉塞）。アプリは CPU軽め・メモリ固定費重めの体質。
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 5. 実測 ============ -->
+<div class="slide flex flex-col p-12" id="slide-5">
+  <p class="text-xs tracking-widest text-indigo-600 font-bold">4. MEASURED</p>
+  <h2 class="text-3xl font-bold text-slate-800 mt-1">実測: 流入率20% ・ 50%の結果</h2>
+  <p class="text-slate-500 text-sm mt-1">営業時間帯 7:00〜23:00、平日3日間（6/9=20%、6/10・6/11=50%）。<span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 text-xs font-bold">実測値</span></p>
+
+  <div class="grid grid-cols-2 gap-6 mt-6 flex-1">
+    <div class="rounded-xl border-2 border-slate-200 p-6">
+      <div class="flex items-baseline justify-between">
+        <h3 class="text-lg font-bold text-slate-700">流入率 20% 期（6/9）</h3>
+        <span class="text-xs text-slate-400">5分粒度 / 7:00〜23:00</span>
+      </div>
+      <div class="mt-4 space-y-4 text-sm">
+        <div>
+          <div class="flex justify-between mb-1"><span class="text-slate-500">ECSへの実流入（ピーク帯）</span><span class="font-bold">39 req/s <span class="px-1.5 rounded bg-emerald-100 text-emerald-700 text-[10px] font-bold align-middle">実測</span></span></div>
+          <div class="h-3 rounded bg-slate-100"><div class="h-3 rounded bg-sky-400" style="width:21%"></div></div>
+        </div>
+        <div>
+          <div class="flex justify-between mb-1"><span class="text-slate-500">CPUの仕事量（p95）</span><span class="font-bold">1.0 vCPU分</span></div>
+          <div class="h-3 rounded bg-slate-100"><div class="h-3 rounded bg-indigo-400" style="width:23%"></div></div>
+        </div>
+        <div>
+          <div class="flex justify-between mb-1"><span class="text-slate-500">タスクMEM最大</span><span class="font-bold">1,604 MB / 2,048 MB（78%）</span></div>
+          <div class="h-3 rounded bg-slate-100"><div class="h-3 rounded bg-emerald-400" style="width:78%"></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="rounded-xl border-2 border-indigo-300 p-6 bg-indigo-50/30">
+      <div class="flex items-baseline justify-between">
+        <h3 class="text-lg font-bold text-indigo-700">流入率 50% 期（6/10・6/11）</h3>
+        <span class="text-xs text-slate-400">5分粒度 / 7:00〜23:00</span>
+      </div>
+      <div class="mt-4 space-y-4 text-sm">
+        <div>
+          <div class="flex justify-between mb-1"><span class="text-slate-500">ECSへの実流入（ピーク帯）</span><span class="font-bold">93 req/s <span class="px-1.5 rounded bg-emerald-100 text-emerald-700 text-[10px] font-bold align-middle">実測</span></span></div>
+          <div class="h-3 rounded bg-slate-100"><div class="h-3 rounded bg-sky-500" style="width:50%"></div></div>
+        </div>
+        <div>
+          <div class="flex justify-between mb-1"><span class="text-slate-500">CPUの仕事量（p95）</span><span class="font-bold">2.1〜2.2 vCPU分</span></div>
+          <div class="h-3 rounded bg-slate-100"><div class="h-3 rounded bg-indigo-500" style="width:52%"></div></div>
+        </div>
+        <div>
+          <div class="flex justify-between mb-1"><span class="text-slate-500">タスクMEM最大</span><span class="font-bold text-rose-600">1,713 MB / 2,048 MB（84%）</span></div>
+          <div class="h-3 rounded bg-slate-100"><div class="h-3 rounded bg-rose-400" style="width:84%"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-4 rounded-lg bg-slate-800 text-white p-4 flex items-center gap-6 text-sm">
+    <span class="font-bold text-sky-300 shrink-0">読み方</span>
+    <p>ECSへの実流入が<b>2.4倍</b>（39→93 req/s）になると、CPUの仕事量も<b>1.0→2.2 vCPU分（2.2倍）とほぼ比例</b>して増えた。MEMは<b>+6%しか動かない固定費型</b> — ただし既に器の84%。<span class="text-slate-400">※実流入はTG実測。全体需要も3日間±2.5%で同水準＝日間比較の前提も成立。</span></p>
+  </div>
+</div>
+
+<!-- ============ 6. 100%予測 ============ -->
+<div class="slide flex flex-col p-12" id="slide-6">
+  <p class="text-xs tracking-widest text-indigo-600 font-bold">5. PROJECTION</p>
+  <h2 class="text-3xl font-bold text-slate-800 mt-1">わかったこと → 流入100%時の必要リソース予測</h2>
+
+  <div class="flex gap-8 mt-5 flex-1">
+    <!-- 散布図風 -->
+    <div class="w-[480px] flex flex-col">
+      <p class="text-sm font-bold text-slate-600 mb-2">ECS実流入 vs CPUの仕事量（5分粒度・実測563点の回帰）</p>
+      <div class="relative flex-1 rounded-xl border-2 border-slate-200 bg-slate-50 overflow-hidden">
+        <!-- 外挿直線 -->
+        <div class="absolute left-[4%] bottom-[12%] w-[125%] h-0.5 bg-indigo-500 origin-bottom-left" style="transform:rotate(-26deg)"></div>
+        <!-- 実測点 -->
+        <div class="absolute w-3.5 h-3.5 rounded-full bg-sky-500 ring-2 ring-white" style="left:19%;bottom:20%"></div>
+        <div class="absolute text-[11px] font-bold text-sky-700" style="left:13%;bottom:9%">20%実測<br>1.0 vCPU分</div>
+        <div class="absolute w-3.5 h-3.5 rounded-full bg-indigo-500 ring-2 ring-white" style="left:46%;bottom:40%"></div>
+        <div class="absolute w-3.5 h-3.5 rounded-full bg-indigo-500 ring-2 ring-white" style="left:48%;bottom:43%"></div>
+        <div class="absolute text-[11px] font-bold text-indigo-700" style="left:42%;bottom:26%">50%実測×2日<br>2.1 / 2.2 vCPU分</div>
+        <!-- 外挿域 -->
+        <div class="absolute right-0 top-0 h-full w-[30%] bg-amber-100/60 border-l-2 border-dashed border-amber-400"></div>
+        <div class="absolute right-2 top-2 text-[11px] font-bold text-amber-700">外挿域<br>80%切替で答え合わせ</div>
+        <div class="absolute w-4 h-4 rounded-full bg-rose-500 ring-4 ring-rose-200" style="right:5%;bottom:71%"></div>
+        <div class="absolute text-[11px] font-bold text-rose-600" style="right:3%;bottom:60%">100%予測<br>4.4 vCPU分</div>
+        <div class="absolute left-2 bottom-1 text-[11px] text-slate-400">→ ECS実流入（req/s）</div>
+      </div>
+      <div class="flex flex-col gap-1.5 mt-2 items-start">
+        <span class="px-2 py-1 rounded bg-emerald-100 text-emerald-700 text-xs font-bold whitespace-nowrap">検証1: 線形性 — R²=0.98〜0.99（実測563点） ✓</span>
+        <span class="px-2 py-1 rounded bg-emerald-100 text-emerald-700 text-xs font-bold whitespace-nowrap">検証2: 単価の一致 — 3窓（3日間）で±2% ✓</span>
+        <span class="px-2 py-1 rounded bg-emerald-100 text-emerald-700 text-xs font-bold whitespace-nowrap">検証3: 独立2方式の一致 — 回帰4.4 vCPU vs 比率外挿4.2 vCPU（±5%） ✓</span>
+      </div>
+    </div>
+    <!-- 計算 -->
+    <div class="flex-1 flex flex-col justify-center gap-2.5">
+      <div class="rounded-lg bg-slate-800 text-white p-3.5 font-mono text-sm">
+        リクエスト1件/秒 ごとに vCPUの約<span class="text-sky-300">2.4%</span>を消費（固定消費は<span class="text-amber-300">ほぼゼロ</span>）
+      </div>
+      <div class="flex gap-2 text-[11px] font-bold">
+        <span class="px-2 py-1 rounded bg-slate-100 text-slate-600">単価: 3窓で±2%一致</span>
+        <span class="px-2 py-1 rounded bg-slate-100 text-slate-600">R² 0.98〜0.99（563点）</span>
+        <span class="px-2 py-1 rounded bg-slate-100 text-slate-600">100%時の実流入 ≒186 req/s</span>
+      </div>
+      <div class="rounded-xl border-2 border-slate-200 p-3.5">
+        <p class="text-sm font-bold text-slate-700 mb-2">CPU: 使用率（<u>現行5台の確保量</u>に対して。点線＝劣化開始72%）</p>
+        <div class="flex items-center gap-2 mb-1"><span class="text-[11px] text-slate-500 w-28 shrink-0">流入20%（実測）</span><div class="h-4 rounded bg-slate-100 flex-1 relative"><div class="h-4 rounded bg-sky-400 text-white text-[10px] font-bold flex items-center justify-end pr-1.5" style="width:19%">19%</div><div class="absolute top-0 h-4 border-l-2 border-dashed border-slate-500" style="left:72%"></div></div></div>
+        <div class="flex items-center gap-2 mb-1"><span class="text-[11px] text-slate-500 w-28 shrink-0">流入50%（実測）</span><div class="h-4 rounded bg-slate-100 flex-1 relative"><div class="h-4 rounded bg-indigo-500 text-white text-[10px] font-bold flex items-center justify-end pr-1.5" style="width:44%">44%</div><div class="absolute top-0 h-4 border-l-2 border-dashed border-slate-500" style="left:72%"></div></div></div>
+        <div class="flex items-center gap-2 mb-1"><span class="text-[11px] text-slate-500 w-28 shrink-0">流入100%（予測）</span><div class="h-4 rounded bg-slate-100 flex-1 relative"><div class="h-4 rounded bg-rose-500 text-white text-[10px] font-bold flex items-center justify-end pr-1.5" style="width:88%">84〜88% — 劣化開始超え</div><div class="absolute top-0 h-4 border-l-2 border-dashed border-slate-200" style="left:72%"></div></div></div>
+        <div class="flex items-center gap-2"><span class="text-[11px] text-emerald-700 font-bold w-28 shrink-0">1vCPU×8台に増強</span><div class="h-4 rounded bg-slate-100 flex-1 relative"><div class="h-4 rounded bg-emerald-500 text-white text-[10px] font-bold flex items-center justify-end pr-1.5" style="width:55%">55% — 平常運転帯</div><div class="absolute top-0 h-4 border-l-2 border-dashed border-slate-500" style="left:72%"></div></div></div>
+        <p class="text-[10px] text-slate-400 mt-2">予測の根拠: 流入+30ptで19%→44%（+25pt）→ <b>流入1%あたり約+0.8pt</b> → 100%時≒84%。リクエスト単価の回帰（精密計算）では88%。<b>設計は安全側の88%を採用</b>し、8台への増強で55%へ</p>
+      </div>
+      <div class="rounded-xl border-2 border-rose-200 p-3.5">
+        <p class="text-sm font-bold text-slate-700 mb-2">MEM: 外挿でなく「実測ピーク＋余裕」で器を決める</p>
+        <div class="flex items-center gap-2 mb-1"><span class="text-[11px] text-slate-500 w-28 shrink-0">流入20%（実測）</span><div class="h-4 rounded bg-slate-100 flex-1"><div class="h-4 rounded bg-indigo-400 text-white text-[10px] font-bold flex items-center justify-end pr-1.5" style="width:78%">78%</div></div></div>
+        <div class="flex items-center gap-2 mb-1"><span class="text-[11px] text-slate-500 w-28 shrink-0">流入50%（実測）</span><div class="h-4 rounded bg-slate-100 flex-1"><div class="h-4 rounded bg-indigo-500 text-white text-[10px] font-bold flex items-center justify-end pr-1.5" style="width:84%">84%</div></div></div>
+        <div class="flex items-center gap-2 mb-1"><span class="text-[11px] text-slate-500 w-28 shrink-0">危険側の参考線</span><div class="h-4 rounded bg-slate-100 flex-1"><div class="h-4 rounded bg-rose-500 text-white text-[10px] font-bold flex items-center justify-end pr-1.5" style="width:93%">93% — 比例外挿なら危険圏</div></div></div>
+        <div class="flex items-center gap-2"><span class="text-[11px] text-emerald-700 font-bold w-28 shrink-0">器を3GBに増量</span><div class="h-4 rounded bg-slate-100 flex-1"><div class="h-4 rounded bg-emerald-500 text-white text-[10px] font-bold flex items-center justify-end pr-1.5" style="width:62%">57〜62% — 安全圏</div></div></div>
+        <p class="text-[10px] text-slate-400 mt-2">MEMはGC・保持・リークの影響を受けるため、CPUのような回帰外挿では決めない。設計値は<b>50%期の個体最大1,713MB＋30〜40%ヘッドルーム</b>で決める。93%は「比例して増えた場合でも2GBは危険」という補助線であり、予測値としては扱わない</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 7. 見直す点 ============ -->
+<div class="slide flex flex-col p-12" id="slide-7">
+  <p class="text-xs tracking-widest text-indigo-600 font-bold">6. FINDINGS → ACTIONS</p>
+  <h2 class="text-3xl font-bold text-slate-800 mt-1">見直す点の整理</h2>
+  <div class="mt-6 flex flex-col gap-3 flex-1 justify-center">
+    <div class="grid grid-cols-[1fr_40px_1fr] items-center gap-2">
+      <div class="rounded-lg bg-slate-100 p-3.5 text-sm"><b class="text-slate-700">気づき:</b> MEMはトラフィックに強く比例しない固定費型。50%時点で器の84%まで到達 <span class="px-1.5 rounded bg-emerald-100 text-emerald-700 text-[10px] font-bold">実測済み</span></div>
+      <span class="text-center text-slate-300 text-xl font-bold">→</span>
+      <div class="rounded-lg bg-indigo-50 border border-indigo-200 p-3.5 text-sm"><b class="text-indigo-700">打ち手:</b> タスクMEMを実測ピーク+30〜40%に増量（2GB→3GB）。MEMはスケールでなくサイズで守る</div>
+    </div>
+    <div class="grid grid-cols-[1fr_40px_1fr] items-center gap-2">
+      <div class="rounded-lg bg-slate-100 p-3.5 text-sm"><b class="text-slate-700">気づき:</b> CPUはリクエストにほぼ比例（R²高） <span class="px-1.5 rounded bg-emerald-100 text-emerald-700 text-[10px] font-bold">実測済み</span>。スケールの根拠に使える</div>
+      <span class="text-center text-slate-300 text-xl font-bold">→</span>
+      <div class="rounded-lg bg-indigo-50 border border-indigo-200 p-3.5 text-sm"><b class="text-indigo-700">打ち手:</b> CPUをTarget Trackingの主トリガーに。閾値は「劣化開始点 −（増設所要時間中の上昇分）」で逆算</div>
+    </div>
+    <div class="grid grid-cols-[1fr_40px_1fr] items-center gap-2">
+      <div class="rounded-lg bg-slate-100 p-3.5 text-sm"><b class="text-slate-700">気づき:</b> 朝7:00の開放は「ゼロ→定常」の段差。後追いスケールでは原理的に間に合わない</div>
+      <span class="text-center text-slate-300 text-xl font-bold">→</span>
+      <div class="rounded-lg bg-indigo-50 border border-indigo-200 p-3.5 text-sm"><b class="text-indigo-700">打ち手:</b> 開放前のスケジュールスケーリングで先回り増設。夜間はminとmaxの両方を縮小</div>
+    </div>
+    <div class="grid grid-cols-[1fr_40px_1fr] items-center gap-2">
+      <div class="rounded-lg bg-slate-100 p-3.5 text-sm"><b class="text-slate-700">気づき:</b> OOMは個体の事象。平均監視では死にかけの1台が見えない</div>
+      <span class="text-center text-slate-300 text-xl font-bold">→</span>
+      <div class="rounded-lg bg-indigo-50 border border-indigo-200 p-3.5 text-sm"><b class="text-indigo-700">打ち手:</b> タスク単位の最大値でアラート階層を設計（85%通知 / 92%増援 / OOM検知）＋ N-1冗長で頭数を担保</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 8. 3パターン ============ -->
+<div class="slide flex flex-col p-12" id="slide-8">
+  <p class="text-xs tracking-widest text-indigo-600 font-bold">7. OPTIONS</p>
+  <h2 class="text-3xl font-bold text-slate-800 mt-1">構成パターン: 同じ容量（8vCPU相当）を4つの形で</h2>
+  <div class="grid grid-cols-4 gap-4 mt-6 flex-1">
+    <!-- A 垂直 -->
+    <div class="rounded-xl border-2 border-slate-200 p-5 flex flex-col">
+      <h3 class="font-bold text-slate-700 text-lg">A. 垂直に伸ばす</h3>
+      <p class="text-xs text-slate-400 mt-0.5">太いタスク × 少数固定</p>
+      <div class="flex gap-2 justify-center my-auto py-4">
+        <div class="w-12 h-20 rounded-lg bg-slate-500 flex items-center justify-center text-white text-[9px] font-bold text-center">2vCPU<br>4GB</div>
+        <div class="w-12 h-20 rounded-lg bg-slate-500 flex items-center justify-center text-white text-[9px] font-bold text-center">2vCPU<br>4GB</div>
+        <div class="w-12 h-20 rounded-lg bg-slate-500 flex items-center justify-center text-white text-[9px] font-bold text-center">2vCPU<br>4GB</div>
+        <div class="w-12 h-20 rounded-lg bg-slate-500 flex items-center justify-center text-white text-[9px] font-bold text-center">2vCPU<br>4GB</div>
+      </div>
+      <p class="text-sm text-slate-600 mt-auto">2vCPU/4GB × <b>4台 固定</b><br><span class="text-xs text-slate-400">1台あたりが太く、コンテナ間のCPU取り合いに余裕</span></p>
+    </div>
+    <!-- B 水平 -->
+    <div class="rounded-xl border-2 border-slate-200 p-5 flex flex-col">
+      <h3 class="font-bold text-slate-700 text-lg">B. 水平に伸ばす</h3>
+      <p class="text-xs text-slate-400 mt-0.5">細いタスク × 多数固定</p>
+      <div class="grid grid-cols-4 gap-1.5 w-fit mx-auto my-auto py-4">
+        <div class="w-10 h-14 rounded bg-sky-500 flex items-center justify-center text-white text-[9px] font-bold text-center">1vCPU<br>3GB</div>
+        <div class="w-10 h-14 rounded bg-sky-500 flex items-center justify-center text-white text-[9px] font-bold text-center">1vCPU<br>3GB</div>
+        <div class="w-10 h-14 rounded bg-sky-500 flex items-center justify-center text-white text-[9px] font-bold text-center">1vCPU<br>3GB</div>
+        <div class="w-10 h-14 rounded bg-sky-500 flex items-center justify-center text-white text-[9px] font-bold text-center">1vCPU<br>3GB</div>
+        <div class="w-10 h-14 rounded bg-sky-500 flex items-center justify-center text-white text-[9px] font-bold text-center">1vCPU<br>3GB</div>
+        <div class="w-10 h-14 rounded bg-sky-500 flex items-center justify-center text-white text-[9px] font-bold text-center">1vCPU<br>3GB</div>
+        <div class="w-10 h-14 rounded bg-sky-500 flex items-center justify-center text-white text-[9px] font-bold text-center">1vCPU<br>3GB</div>
+        <div class="w-10 h-14 rounded bg-sky-500 flex items-center justify-center text-white text-[9px] font-bold text-center">1vCPU<br>3GB</div>
+      </div>
+      <p class="text-sm text-slate-600 mt-auto">1vCPU/3GB × <b>8台 固定</b><br><span class="text-xs text-slate-400">1台落ちても容量損失は12.5%。刻みが細かい</span></p>
+    </div>
+    <!-- C スケジュール+オート -->
+    <div class="rounded-xl border-2 border-sky-300 bg-sky-50/30 p-4 flex flex-col">
+      <h3 class="font-bold text-sky-700 text-lg">C. スケジュール＋オートスケール</h3>
+      <p class="text-xs text-slate-400 mt-0.5">スケジュール主体・Scaleは保険 <span class="px-1.5 rounded bg-sky-100 text-sky-700 font-bold">推奨</span></p>
+      <div class="flex items-end gap-1 justify-center my-auto py-3 h-32">
+        <div class="flex flex-col items-center"><div class="w-9 bg-sky-300 rounded-t" style="height:24px"></div><span class="text-[9px] text-slate-400 mt-0.5">7時<br>2台</span></div>
+        <div class="flex flex-col items-center"><div class="w-9 bg-sky-500 rounded-t" style="height:88px"></div><span class="text-[9px] text-slate-400 mt-0.5">8:30<br>8台</span></div>
+        <div class="flex flex-col items-center"><div class="w-9 bg-sky-400 rounded-t" style="height:48px"></div><span class="text-[9px] text-slate-400 mt-0.5">19時<br>4台</span></div>
+        <div class="flex flex-col items-center"><div class="w-9 bg-sky-300 rounded-t" style="height:24px"></div><span class="text-[9px] text-slate-400 mt-0.5">21時<br>2台</span></div>
+      </div>
+      <p class="text-sm text-slate-600 mt-auto">ピーク時刻が既知なので<b>時刻で先回り増減</b><br><span class="text-xs text-slate-400">実測カーブが3日間ほぼ同形＝予定表で吸収できる根拠あり</span></p>
+    </div>
+    <!-- D オートスケール主体 -->
+    <div class="rounded-xl border-2 border-emerald-300 bg-emerald-50/30 p-5 flex flex-col">
+      <h3 class="font-bold text-emerald-700 text-lg">D. オートスケール主体</h3>
+      <p class="text-xs text-slate-400 mt-0.5">薄いベース＋自動増減で吸収 <span class="px-1.5 rounded bg-emerald-100 text-emerald-700 font-bold">将来形</span></p>
+      <div class="grid grid-cols-4 gap-1.5 w-fit mx-auto my-auto py-4">
+        <div class="w-10 h-14 rounded bg-emerald-600 flex items-center justify-center text-white text-[9px] font-bold text-center">base</div>
+        <div class="w-10 h-14 rounded bg-emerald-600 flex items-center justify-center text-white text-[9px] font-bold text-center">base</div>
+        <div class="w-10 h-14 rounded bg-emerald-600 flex items-center justify-center text-white text-[9px] font-bold text-center">base</div>
+        <div class="w-10 h-14 rounded bg-emerald-600 flex items-center justify-center text-white text-[9px] font-bold text-center">base</div>
+        <div class="w-10 h-14 rounded bg-emerald-600 flex items-center justify-center text-white text-[9px] font-bold text-center">base</div>
+        <div class="w-10 h-14 rounded bg-emerald-600 flex items-center justify-center text-white text-[9px] font-bold text-center">base</div>
+        <div class="w-10 h-14 rounded border-2 border-dashed border-emerald-400 text-emerald-500 flex items-center justify-center text-[9px] font-bold text-center">auto</div>
+        <div class="w-10 h-14 rounded border-2 border-dashed border-emerald-400 text-emerald-500 flex items-center justify-center text-[9px] font-bold text-center">auto</div>
+      </div>
+      <p class="text-sm text-slate-600 mt-auto">1vCPU/3GB × <b>6台ベース + 自動で〜10台</b><br><span class="text-xs text-slate-400">谷の時間帯は薄く、ピークは自動増設で吸収</span></p>
+    </div>
+  </div>
+</div>
+
+
+<!-- ============ 8.5 割り振りの見方 ============ -->
+<div class="slide flex flex-col p-12" id="slide-8b">
+  <p class="text-xs tracking-widest text-indigo-600 font-bold">7. OPTIONS ▸ ALLOCATION VIEW</p>
+  <h2 class="text-3xl font-bold text-slate-800 mt-1">もう一つの見方: 100%時の総量を「どう確保するか」</h2>
+  <div class="mt-3 rounded-lg bg-slate-800 text-white p-3.5 text-sm flex items-center gap-4">
+    <span class="font-bold text-sky-300 shrink-0">総量</span>
+    <p>100%時のピーク需要 ≒ <b>4.4 vCPU分</b>（CPU回帰からの外挿）。安全率（55%運用）込みの必要確保量 ≒ <b>8 vCPU</b>。4案の違いは、この8vCPUを<b>固定で持つか、変動で持つか</b>の割り振りだけ</p>
+  </div>
+  <div class="grid grid-cols-3 gap-5 mt-4 flex-1">
+    <div class="rounded-xl border-2 border-slate-200 p-4 flex flex-col">
+      <p class="text-sm font-bold text-slate-700">A・B: ほぼ全量を最初から固定</p>
+      <p class="text-[10px] text-slate-400 mt-0.5">AとBの違いは1台落ちた時の影響度だけ（A: 25%減 / B: 12.5%減）</p>
+      <div class="flex items-end gap-1 flex-1 mt-2"><div class="flex-1 h-full relative"><div class="absolute bottom-0 w-full bg-slate-200/90 rounded-t" style="height:100%"></div><div class="absolute bottom-0 left-[22%] w-[56%] bg-indigo-600 rounded-t" style="height:4%"></div></div><div class="flex-1 h-full relative"><div class="absolute bottom-0 w-full bg-slate-200/90 rounded-t" style="height:100%"></div><div class="absolute bottom-0 left-[22%] w-[56%] bg-indigo-600 rounded-t" style="height:39%"></div></div><div class="flex-1 h-full relative"><div class="absolute bottom-0 w-full bg-slate-200/90 rounded-t" style="height:100%"></div><div class="absolute bottom-0 left-[22%] w-[56%] bg-indigo-600 rounded-t" style="height:54%"></div></div><div class="flex-1 h-full relative"><div class="absolute bottom-0 w-full bg-slate-200/90 rounded-t" style="height:100%"></div><div class="absolute bottom-0 left-[22%] w-[56%] bg-indigo-600 rounded-t" style="height:45%"></div></div><div class="flex-1 h-full relative"><div class="absolute bottom-0 w-full bg-slate-200/90 rounded-t" style="height:100%"></div><div class="absolute bottom-0 left-[22%] w-[56%] bg-indigo-600 rounded-t" style="height:50%"></div></div><div class="flex-1 h-full relative"><div class="absolute bottom-0 w-full bg-slate-200/90 rounded-t" style="height:100%"></div><div class="absolute bottom-0 left-[22%] w-[56%] bg-indigo-600 rounded-t" style="height:53%"></div></div><div class="flex-1 h-full relative"><div class="absolute bottom-0 w-full bg-slate-200/90 rounded-t" style="height:100%"></div><div class="absolute bottom-0 left-[22%] w-[56%] bg-indigo-600 rounded-t" style="height:44%"></div></div><div class="flex-1 h-full relative"><div class="absolute bottom-0 w-full bg-slate-200/90 rounded-t" style="height:100%"></div><div class="absolute bottom-0 left-[22%] w-[56%] bg-indigo-600 rounded-t" style="height:11%"></div></div></div><div class="flex gap-1 mt-1"><span class="flex-1 text-center text-[9px] text-slate-400">7時</span><span class="flex-1 text-center text-[9px] text-slate-400">9時</span><span class="flex-1 text-center text-[9px] text-slate-400">11時</span><span class="flex-1 text-center text-[9px] text-slate-400">13時</span><span class="flex-1 text-center text-[9px] text-slate-400">15時</span><span class="flex-1 text-center text-[9px] text-slate-400">17時</span><span class="flex-1 text-center text-[9px] text-slate-400">19時</span><span class="flex-1 text-center text-[9px] text-slate-400">21時</span></div>
+    </div>
+    <div class="rounded-xl border-2 border-sky-300 bg-sky-50/30 p-4 flex flex-col">
+      <p class="text-sm font-bold text-sky-700">C: 予定調和な変動は固定、差分はオート</p>
+      <p class="text-[10px] text-slate-400 mt-0.5">実測で形が分かっているカーブをスケジュールの階段でなぞり、想定外だけ保険のScaleが拾う</p>
+      <div class="flex items-end gap-1 flex-1 mt-2"><div class="flex-1 h-full relative"><div class="absolute bottom-0 w-full bg-sky-200/90 rounded-t" style="height:25%"></div><div class="absolute bottom-0 left-[22%] w-[56%] bg-indigo-600 rounded-t" style="height:4%"></div></div><div class="flex-1 h-full relative"><div class="absolute bottom-0 w-full bg-sky-200/90 rounded-t" style="height:75%"></div><div class="absolute bottom-0 left-[22%] w-[56%] bg-indigo-600 rounded-t" style="height:39%"></div></div><div class="flex-1 h-full relative"><div class="absolute bottom-0 w-full bg-sky-200/90 rounded-t" style="height:100%"></div><div class="absolute bottom-0 left-[22%] w-[56%] bg-indigo-600 rounded-t" style="height:54%"></div></div><div class="flex-1 h-full relative"><div class="absolute bottom-0 w-full bg-sky-200/90 rounded-t" style="height:100%"></div><div class="absolute bottom-0 left-[22%] w-[56%] bg-indigo-600 rounded-t" style="height:45%"></div></div><div class="flex-1 h-full relative"><div class="absolute bottom-0 w-full bg-sky-200/90 rounded-t" style="height:100%"></div><div class="absolute bottom-0 left-[22%] w-[56%] bg-indigo-600 rounded-t" style="height:50%"></div></div><div class="flex-1 h-full relative"><div class="absolute bottom-0 w-full bg-sky-200/90 rounded-t" style="height:100%"></div><div class="absolute bottom-0 left-[22%] w-[56%] bg-indigo-600 rounded-t" style="height:53%"></div></div><div class="flex-1 h-full relative"><div class="absolute bottom-0 w-full bg-sky-200/90 rounded-t" style="height:88%"></div><div class="absolute bottom-0 left-[22%] w-[56%] bg-indigo-600 rounded-t" style="height:44%"></div></div><div class="flex-1 h-full relative"><div class="absolute bottom-0 w-full bg-sky-200/90 rounded-t" style="height:25%"></div><div class="absolute bottom-0 left-[22%] w-[56%] bg-indigo-600 rounded-t" style="height:11%"></div></div></div><div class="flex gap-1 mt-1"><span class="flex-1 text-center text-[9px] text-slate-400">7時</span><span class="flex-1 text-center text-[9px] text-slate-400">9時</span><span class="flex-1 text-center text-[9px] text-slate-400">11時</span><span class="flex-1 text-center text-[9px] text-slate-400">13時</span><span class="flex-1 text-center text-[9px] text-slate-400">15時</span><span class="flex-1 text-center text-[9px] text-slate-400">17時</span><span class="flex-1 text-center text-[9px] text-slate-400">19時</span><span class="flex-1 text-center text-[9px] text-slate-400">21時</span></div>
+    </div>
+    <div class="rounded-xl border-2 border-emerald-300 bg-emerald-50/30 p-4 flex flex-col">
+      <p class="text-sm font-bold text-emerald-700">D: 最低だけ固定、変動は実流入に追従</p>
+      <p class="text-[10px] text-slate-400 mt-0.5">床（N-1の最低限・濃い帯）だけ固定し、残りは実流入に応じてScaleが自動確保（点線）</p>
+      <div class="flex items-end gap-1 flex-1 mt-2"><div class="flex-1 h-full relative"><div class="absolute bottom-0 w-full bg-emerald-100/60 rounded-t" style="height:25%"></div><div class="absolute bottom-0 w-full bg-emerald-200/70" style="height:25%"></div><div class="absolute bottom-0 left-[22%] w-[56%] bg-indigo-600 rounded-t" style="height:4%"></div></div><div class="flex-1 h-full relative"><div class="absolute bottom-0 w-full bg-emerald-100/60 rounded-t border-2 border-dashed border-emerald-400" style="height:75%"></div><div class="absolute bottom-0 w-full bg-emerald-200/70" style="height:25%"></div><div class="absolute bottom-0 left-[22%] w-[56%] bg-indigo-600 rounded-t" style="height:39%"></div></div><div class="flex-1 h-full relative"><div class="absolute bottom-0 w-full bg-emerald-100/60 rounded-t border-2 border-dashed border-emerald-400" style="height:100%"></div><div class="absolute bottom-0 w-full bg-emerald-200/70" style="height:25%"></div><div class="absolute bottom-0 left-[22%] w-[56%] bg-indigo-600 rounded-t" style="height:54%"></div></div><div class="flex-1 h-full relative"><div class="absolute bottom-0 w-full bg-emerald-100/60 rounded-t border-2 border-dashed border-emerald-400" style="height:88%"></div><div class="absolute bottom-0 w-full bg-emerald-200/70" style="height:25%"></div><div class="absolute bottom-0 left-[22%] w-[56%] bg-indigo-600 rounded-t" style="height:45%"></div></div><div class="flex-1 h-full relative"><div class="absolute bottom-0 w-full bg-emerald-100/60 rounded-t border-2 border-dashed border-emerald-400" style="height:100%"></div><div class="absolute bottom-0 w-full bg-emerald-200/70" style="height:25%"></div><div class="absolute bottom-0 left-[22%] w-[56%] bg-indigo-600 rounded-t" style="height:50%"></div></div><div class="flex-1 h-full relative"><div class="absolute bottom-0 w-full bg-emerald-100/60 rounded-t border-2 border-dashed border-emerald-400" style="height:100%"></div><div class="absolute bottom-0 w-full bg-emerald-200/70" style="height:25%"></div><div class="absolute bottom-0 left-[22%] w-[56%] bg-indigo-600 rounded-t" style="height:53%"></div></div><div class="flex-1 h-full relative"><div class="absolute bottom-0 w-full bg-emerald-100/60 rounded-t border-2 border-dashed border-emerald-400" style="height:88%"></div><div class="absolute bottom-0 w-full bg-emerald-200/70" style="height:25%"></div><div class="absolute bottom-0 left-[22%] w-[56%] bg-indigo-600 rounded-t" style="height:44%"></div></div><div class="flex-1 h-full relative"><div class="absolute bottom-0 w-full bg-emerald-100/60 rounded-t" style="height:25%"></div><div class="absolute bottom-0 w-full bg-emerald-200/70" style="height:25%"></div><div class="absolute bottom-0 left-[22%] w-[56%] bg-indigo-600 rounded-t" style="height:11%"></div></div></div><div class="flex gap-1 mt-1"><span class="flex-1 text-center text-[9px] text-slate-400">7時</span><span class="flex-1 text-center text-[9px] text-slate-400">9時</span><span class="flex-1 text-center text-[9px] text-slate-400">11時</span><span class="flex-1 text-center text-[9px] text-slate-400">13時</span><span class="flex-1 text-center text-[9px] text-slate-400">15時</span><span class="flex-1 text-center text-[9px] text-slate-400">17時</span><span class="flex-1 text-center text-[9px] text-slate-400">19時</span><span class="flex-1 text-center text-[9px] text-slate-400">21時</span></div>
+    </div>
+  </div>
+      <p class="text-xs text-slate-400 mt-2.5">濃い棒＝時間帯ごとの需要（CPU回帰からの100%換算）／薄い面＝確保している容量。<b>薄い面と濃い棒のすき間が「遊んでいる確保」＝コスト</b>。CとDは同じ部品を使えるが、Dはスケールイン・cooldown・max張り付きの運用条件を再評価してから移る</p>
+</div>
+
+
+<!-- ============ 8.7 スケール構成と役割 ============ -->
+<div class="slide flex flex-col p-12" id="slide-8c">
+  <p class="text-xs tracking-widest text-indigo-600 font-bold">7. OPTIONS ▸ MECHANISMS</p>
+  <h2 class="text-3xl font-bold text-slate-800 mt-1">各案のスケール構成と期待する役割</h2>
+  <table class="mt-6 w-full text-sm border-collapse">
+    <thead>
+      <tr class="text-left text-slate-500">
+        <th class="p-3 w-52">スケール機構</th>
+        <th class="p-3">A・B. 固定</th>
+        <th class="p-3 bg-sky-50 rounded-t-lg">C. スケジュール＋オート（推奨）</th>
+        <th class="p-3 bg-emerald-50 rounded-t-lg">D. オートスケール主体（将来形）</th>
+      </tr>
+    </thead>
+    <tbody class="align-top">
+      <tr class="border-t border-slate-200">
+        <td class="p-3 font-bold text-slate-600">スケジュール<br><span class="text-xs font-normal text-slate-400">時刻でmin/maxを上下</span></td>
+        <td class="p-3 text-slate-400">使わない（台数は常時固定）</td>
+        <td class="p-3 bg-sky-50"><b class="text-sky-700">主役</b>: 既知の需要カーブを時刻で先回り確保。朝の段差・夜間縮小もここが担当</td>
+        <td class="p-3 bg-emerald-50">脇役: 床（N-1）の維持と夜間縮小のみ</td>
+      </tr>
+      <tr class="border-t border-slate-200">
+        <td class="p-3 font-bold text-slate-600">CPU Target Tracking<br><span class="text-xs font-normal text-slate-400">使用率55〜60%を保つ自動増減</span></td>
+        <td class="p-3">切り札として装着: 平常では発火しない高め閾値（例65%）。<b>min=固定台数でイン方向を封印</b>が条件</td>
+        <td class="p-3 bg-sky-50">保険: 予定外の増加だけ吸収。<b>唯一のスケールイン責任者</b>（minより下には行けない）</td>
+        <td class="p-3 bg-emerald-50"><b class="text-emerald-700">主役</b>: 日中の増減を実流入で駆動</td>
+      </tr>
+      <tr class="border-t border-slate-200">
+        <td class="p-3 font-bold text-slate-600">MEM Step<br><span class="text-xs font-normal text-slate-400">個体Max&gt;92%で+1台（アウト専用）</span></td>
+        <td class="p-3">同じく切り札として装着（アウト専用なので固定運用を乱さない）</td>
+        <td class="p-3 bg-sky-50">個体危篤時の頭数増援（イン方向は定義せず＝減らす事故を起こせない）</td>
+        <td class="p-3 bg-emerald-50">同左</td>
+      </tr>
+      <tr class="border-t border-slate-200">
+        <td class="p-3 font-bold text-slate-600">MEMの守りの階段<br><span class="text-xs font-normal text-slate-400">85%通知 / 95%洗い替え / OOM検知</span></td>
+        <td class="p-3 text-slate-600" colspan="3"><b>全案共通の装備</b>（案の差分ではない）。スケールではなく、アラート・自動入れ替え・自動補充で「落ちること」に備える</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="mt-auto rounded-xl border-2 border-indigo-200 bg-indigo-50/40 p-4 text-sm text-slate-700">
+    <b class="text-indigo-700">読み方:</b> <b>4案とも装着する部品は同じにできる</b>。違いは各部品の「出番の多さ」。CとDは同じ3部品を流用できるが、D化は単なるダイヤル操作ではない。<b>min〜maxの帯、cooldown、max張り付き時の見直し条件、スケールイン後のp95</b>を再評価してから比重を移す
+  </div>
+</div>
+
+<!-- ============ 9. メリデメ ============ -->
+<div class="slide flex flex-col p-12" id="slide-9">
+  <p class="text-xs tracking-widest text-indigo-600 font-bold">8. TRADE-OFFS</p>
+  <h2 class="text-3xl font-bold text-slate-800 mt-1">メリット / デメリット と 受容するリスク</h2>
+  <table class="mt-5 w-full text-sm border-collapse">
+    <thead>
+      <tr class="text-left text-slate-500">
+        <th class="p-2.5 w-32"></th>
+        <th class="p-2.5">A. 垂直（太く少なく）</th>
+        <th class="p-2.5">B. 水平（細く多く）</th>
+        <th class="p-2.5 bg-sky-50 rounded-t-lg">C. スケジュール＋オートスケール</th>
+        <th class="p-2.5 bg-emerald-50 rounded-t-lg">D. オートスケール主体</th>
+      </tr>
+    </thead>
+    <tbody class="align-top">
+      <tr class="border-t border-slate-200">
+        <td class="p-2.5 font-bold text-slate-600">障害耐性</td>
+        <td class="p-2.5">△ 1台喪失=25%減</td>
+        <td class="p-2.5">◎ 1台喪失=12.5%減</td>
+        <td class="p-2.5 bg-sky-50">○ 時間帯ごとにN-1で設計</td>
+        <td class="p-2.5 bg-emerald-50">○ ベース6台でN-1充足</td>
+      </tr>
+      <tr class="border-t border-slate-200">
+        <td class="p-2.5 font-bold text-slate-600">コスト</td>
+        <td class="p-2.5">△ 常時フル容量</td>
+        <td class="p-2.5">△ 常時フル容量</td>
+        <td class="p-2.5 bg-sky-50">○ カーブが規則的なのでDに近い削減</td>
+        <td class="p-2.5 bg-emerald-50">◎ 谷の時間は薄く（ピーク/谷比が大きいほど効く）</td>
+      </tr>
+      <tr class="border-t border-slate-200">
+        <td class="p-2.5 font-bold text-slate-600">運用の単純さ</td>
+        <td class="p-2.5">◎ 動かない構成</td>
+        <td class="p-2.5">○ 動かない構成</td>
+        <td class="p-2.5 bg-sky-50">◎ 動きが予定表どおり＝説明・監査しやすい</td>
+        <td class="p-2.5 bg-emerald-50">△ スケーリング設計の理解が必要</td>
+      </tr>
+      <tr class="border-t border-slate-200">
+        <td class="p-2.5 font-bold text-slate-600">必要な追加実装</td>
+        <td class="p-2.5">ほぼなし（切り札のTT/Stepを装着する場合も設定のみ）</td>
+        <td class="p-2.5">同左</td>
+        <td class="p-2.5 bg-sky-50">スケジュールスケーリング ＋ 保険のTarget Tracking（minを動かす運用ルール込み）</td>
+        <td class="p-2.5 bg-emerald-50">Cと同じ部品 ＋ cooldown / max張り付き / スケールイン後p95の運用設計</td>
+      </tr>
+      <tr class="border-t border-slate-200">
+        <td class="p-2.5 font-bold text-slate-600">急増耐性</td>
+        <td class="p-2.5">○ 余裕は常時ある</td>
+        <td class="p-2.5">○ 余裕は常時ある</td>
+        <td class="p-2.5 bg-sky-50">△ 想定外の急増は保険のScale頼み（閾値緩め）</td>
+        <td class="p-2.5 bg-emerald-50">△ 増設所要 5〜8分の間は既存余裕で吸収</td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="text-xs text-slate-400 mt-2">※ MEMのStep増援・アラート階層・OOM検知は、どの案を選んでも共通で導入する（守りの装備であり案の差分ではない）</p>
+  <div class="mt-3 rounded-xl border-2 border-rose-200 bg-rose-50 p-4 flex gap-4 items-start">
+    <span class="px-3 py-1 rounded-full bg-rose-500 text-white text-xs font-bold shrink-0 mt-0.5">受容リスクの明文化（Scaleで吸収する部分・C/D共通）</span>
+    <p class="text-sm text-slate-700">閾値<b>55%</b>から劣化開始点72%まで<b>17ポイントの余裕</b>がある。実測の最大上昇は<b>+8.1pt/8分</b>（朝の立ち上がり・5分粒度値）であり、増設所要<b>7分</b> <span class="px-1.5 rounded bg-amber-100 text-amber-700 text-[10px] font-bold">要実測</span> の間に実測の2倍超の未知の急増が来た場合のみ一時的なレイテンシ劣化を許容する。既知のイベント（移行切替・開放）はスケジュールによる事前増設で対応し、このリスクの対象外とする。</p>
+  </div>
+</div>
+
+<!-- ============ 10. 推奨 ============ -->
+<div class="slide flex flex-col p-12" id="slide-10">
+  <p class="text-xs tracking-widest text-indigo-600 font-bold">9. RECOMMENDATION</p>
+  <h2 class="text-3xl font-bold text-slate-800 mt-1">推奨: <span class="text-sky-600">C（スケジュール＋オートスケール）</span><span class="text-xl text-slate-500 ml-3">— D化は運用条件を再評価してから</span></h2>
+  <div class="flex gap-7 mt-5 flex-1 items-center">
+    <div class="flex-1 flex flex-col gap-2.5">
+      <div class="rounded-lg border border-slate-200 p-3 flex justify-between items-center text-sm">
+        <span class="text-slate-500">ベーススペック</span><span class="font-bold text-slate-800">1 vCPU / <span class="text-rose-600">3 GB（2GBから増量・100%前に必須）</span></span>
+      </div>
+      <div class="rounded-lg border border-slate-200 p-3 flex justify-between items-center text-sm">
+        <span class="text-slate-500">台数</span><span class="font-bold text-slate-800">営業帯 8台基準（p95で55%）/ max 12 / 夜間 min 2</span>
+      </div>
+      <div class="rounded-lg border-2 border-emerald-200 bg-emerald-50/50 p-3 text-sm">
+        <p class="flex justify-between"><span class="text-slate-500">CPU（想定外の保険）</span><span class="font-bold text-emerald-700">Target Tracking 55〜60%</span></p>
+        <p class="text-xs text-slate-400 mt-1">容量の主役はスケジュール（時刻でminを上下）。Target Trackingは予定外の増加を拾う保険として並走</p>
+      </div>
+      <div class="rounded-lg border-2 border-sky-200 bg-sky-50/50 p-3 text-sm">
+        <p class="flex justify-between"><span class="text-slate-500">MEM（危篤時の増援）</span><span class="font-bold text-sky-700">Step Scaling: 個体Max&gt;92%で+1台（増援専用）</span></p>
+        <p class="text-xs text-slate-400 mt-1">if文型: 比例計算をしない・スケールインに干渉しない。AWS公式の「MEMでのTarget Tracking非推奨（.NET名指し）」と両立する形</p>
+      </div>
+      <div class="rounded-lg border border-slate-200 p-3 flex justify-between items-center text-sm">
+        <span class="text-slate-500">時刻（段差対応）</span><span class="font-bold text-slate-800">開放前に先回り増設 / 夜間は min・max 両方縮小</span>
+      </div>
+      <div class="rounded-lg border-2 border-sky-200 bg-sky-50/50 p-3 text-sm">
+        <p class="flex justify-between"><span class="text-slate-500">将来の拡張（D化）</span><span class="font-bold text-sky-700">予定表が負債になったら、運用条件を再評価してDへ</span></p>
+        <p class="text-xs text-slate-400 mt-1">D化のトリガー例: トラフィック成長でスケジュール改定が頻発する / 不規則な需要イベントが増える。部品はCから流用できるが、移行時はmin〜maxの帯、cooldown、max張り付き時の対応、スケールイン後のp95を見直す。<b>鉄則: スケジュールはdesiredでなくminを動かす</b>（desiredだけ増やすとScaleが直後に戻す事故が起きる・実績あり）</p>
+      </div>
+    </div>
+    <!-- 閾値の階段 -->
+    <div class="w-[400px]">
+      <p class="text-sm font-bold text-slate-600 mb-2">MEMの守りの階段（スケールとアラートの全体像）</p>
+      <div class="flex flex-col gap-1.5">
+        <div class="flex items-center gap-3 rounded-lg bg-rose-600 text-white p-3">
+          <span class="font-bold text-base w-20">OOM</span>
+          <span class="text-xs">最終検知。ECSは補充するが、ユーザー影響後の事象として扱う</span>
+        </div>
+        <div class="flex items-center gap-3 rounded-lg bg-rose-400 text-white p-3 ml-4">
+          <span class="font-bold text-base w-20">95%</span>
+          <span class="text-xs">自動洗い替え: 夜間定期入替（閉塞中・Scheduler直呼び）＋ taskdefヘルスチェック。<b>アプリ改修不要</b></span>
+        </div>
+        <div class="flex items-center gap-3 rounded-lg bg-amber-400 text-white p-3 ml-8">
+          <span class="font-bold text-base w-20">92%</span>
+          <span class="text-xs">Step Scalingで+1台（落ちる前の頭数確保。頻発なら器を増やす）</span>
+        </div>
+        <div class="flex items-center gap-3 rounded-lg bg-sky-400 text-white p-3 ml-12">
+          <span class="font-bold text-base w-20">85%</span>
+          <span class="text-xs">通知 → 器のサイズ見直し判断（人）</span>
+        </div>
+        <div class="flex items-center gap-3 rounded-lg bg-emerald-500 text-white p-3 ml-16">
+          <span class="font-bold text-base w-20">通常域</span>
+          <span class="text-xs">実測ピーク+30〜40%の器で崖から距離を取る</span>
+        </div>
+      </div>
+      <p class="text-xs text-slate-400 mt-2">92%発火が頻発する場合は「器が小さい」シグナル → 増援で隠さずタスクMEM増量へ</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 11. 移行計画 ============ -->
+<div class="slide flex flex-col p-12" id="slide-11">
+  <p class="text-xs tracking-widest text-indigo-600 font-bold">10. ROLLOUT</p>
+  <h2 class="text-3xl font-bold text-slate-800 mt-1">移行計画: 80%・100%を<span class="text-indigo-600">検証ゲート</span>として使う</h2>
+  <p class="text-slate-500 text-sm mt-1">CPU回帰は強いが、100%は外挿域。80%切替で答え合わせ → 補正してから100%へ進む</p>
+
+  <!-- タイムライン -->
+  <div class="flex items-center mt-8">
+    <div class="flex-1 flex items-center">
+      <div class="flex flex-col items-center flex-1">
+        <div class="w-14 h-14 rounded-full bg-slate-300 text-white flex items-center justify-center font-bold">20%</div>
+        <span class="text-xs text-slate-400 mt-1.5">完了（実測済み）</span>
+      </div>
+      <div class="h-1 flex-1 bg-slate-300 rounded"></div>
+      <div class="flex flex-col items-center flex-1">
+        <div class="w-14 h-14 rounded-full bg-indigo-500 text-white flex items-center justify-center font-bold ring-4 ring-indigo-200">50%</div>
+        <span class="text-xs text-indigo-500 font-bold mt-1.5">いまここ（実測済み）</span>
+      </div>
+      <div class="h-1 flex-1 bg-slate-200 rounded"></div>
+      <div class="flex flex-col items-center flex-1">
+        <div class="w-14 h-14 rounded-full bg-amber-400 text-white flex items-center justify-center font-bold">80%</div>
+        <span class="text-xs text-amber-600 font-bold mt-1.5">検証ゲート</span>
+      </div>
+      <div class="h-1 flex-1 bg-slate-200 rounded"></div>
+      <div class="flex flex-col items-center flex-1">
+        <div class="w-14 h-14 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold">100%</div>
+        <span class="text-xs text-emerald-600 font-bold mt-1.5">本番（補正済み設計）</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-2 gap-5 mt-8 flex-1">
+    <div class="rounded-xl border-2 border-amber-200 bg-amber-50/40 p-5">
+      <h3 class="font-bold text-amber-700">80%切替 = 予測の答え合わせ</h3>
+      <ul class="mt-3 text-sm text-slate-600 space-y-2">
+        <li class="flex gap-2"><span class="text-amber-500 font-bold shrink-0">事前</span><span>切替はスケーリングに頼らない（段差は後追い不可）。予測値ぶんへ<b>事前にminを引き上げ</b>てから切替</span></li>
+        <li class="flex gap-2"><span class="text-amber-500 font-bold shrink-0">観測</span>実測CPU vs 予測CPU（乖離±15%以内か）/ タスクMEM最大 / p95レイテンシ</li>
+        <li class="flex gap-2"><span class="text-amber-500 font-bold shrink-0">補正</span><span>乖離していたら<b>閾値・ベース台数をここで再計算</b>（外挿域に入る前の実測点でモデルを更新）</span></li>
+        <li class="flex gap-2"><span class="text-amber-500 font-bold shrink-0">戻し</span>p95劣化 or エラー率が条件超過なら加重を50%へ戻す</li>
+      </ul>
+    </div>
+    <div class="rounded-xl border-2 border-emerald-200 bg-emerald-50/40 p-5">
+      <h3 class="font-bold text-emerald-700">100%切替 = 補正済み設計で迎える本番</h3>
+      <ul class="mt-3 text-sm text-slate-600 space-y-2">
+        <li class="flex gap-2"><span class="text-emerald-500 font-bold shrink-0">事前</span>80%で補正した設計値を反映。同じく事前増設してから切替</li>
+        <li class="flex gap-2"><span class="text-emerald-500 font-bold shrink-0">観測</span>同項目 + スケールイン挙動（夜間に正しく縮むか）</li>
+        <li class="flex gap-2"><span class="text-emerald-500 font-bold shrink-0">安定後</span>2週間の実測でmin/max・閾値を最終確定 → EC2側の縮退判断へ</li>
+        <li class="flex gap-2"><span class="text-emerald-500 font-bold shrink-0">戻し</span>EC2側は即時受け可能な状態を切替後2週間維持</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 12. まとめ ============ -->
+<div class="slide flex flex-col p-12" id="slide-12">
+  <p class="text-xs tracking-widest text-indigo-600 font-bold">SUMMARY</p>
+  <h2 class="text-3xl font-bold text-slate-800 mt-1">まとめ と 今後のアクション</h2>
+  <div class="grid grid-cols-3 gap-5 mt-7">
+    <div class="rounded-xl bg-slate-800 text-white p-5">
+      <p class="text-3xl font-bold text-sky-300">1</p>
+      <p class="mt-2 text-sm leading-relaxed"><b>CPUは実測回帰で100%を予測</b>し、目標使用率55%から容量を逆算。MEMは外挿せず「実測ピーク+余裕」で器を決める</p>
+    </div>
+    <div class="rounded-xl bg-slate-800 text-white p-5">
+      <p class="text-3xl font-bold text-emerald-300">2</p>
+      <p class="mt-2 text-sm leading-relaxed"><b>容量はスケジュールで先回り、Target Trackingは保険</b>。MEMはStep増援＋アラート階層＋自動洗い替えで、落ちる前の介入を厚くする</p>
+    </div>
+    <div class="rounded-xl bg-slate-800 text-white p-5">
+      <p class="text-3xl font-bold text-amber-300">3</p>
+      <p class="mt-2 text-sm leading-relaxed"><b>80%切替を検証ゲートに</b>。回帰予測を実測で答え合わせし、補正してから100%へ</p>
+    </div>
+  </div>
+  <div class="mt-7 rounded-xl border-2 border-indigo-200 p-5">
+    <p class="font-bold text-indigo-700 text-sm mb-3">今後のアクション</p>
+    <div class="grid grid-cols-2 gap-x-8 gap-y-2 text-sm text-slate-600">
+      <p>☑ 実測データ取得（6/9〜6/11 営業時間帯）</p>
+      <p>☑ 予測の検証（R²0.98以上・単価3窓±2%・独立2方式±5%一致）</p>
+      <p class="font-bold text-rose-600">☐ タスクMEM 2GB→3GB 増量（100%切替前に必須）</p>
+      <p>☐ スケールアウト所要時間の実測（stgで desired+1）</p>
+      <p>☐ 80%切替の事前増設量と戻し条件の合意</p>
+      <p>☐ 8分窓上昇の1分粒度での再計測（任意）</p>
+    </div>
+  </div>
+  <p class="mt-auto text-xs text-slate-400">出典: AWS ECS Best Practices Guide “Optimizing Amazon ECS service auto scaling” / Application Auto Scaling User Guide（MEMのTarget Tracking非推奨・比例性要件・複数ポリシー仕様）</p>
+</div>
+
+<div id="page-counter">1 / 12</div>
+
+<script>
+const slides = Array.from(document.querySelectorAll('.slide'));
+const counter = document.getElementById('page-counter');
+let current = 0;
+
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      current = slides.indexOf(e.target);
+      counter.textContent = (current + 1) + ' / ' + slides.length;
+    }
+  });
+}, { threshold: 0.55 });
+slides.forEach(s => observer.observe(s));
+
+document.addEventListener('keydown', (e) => {
+  if (['ArrowDown','ArrowRight',' ','PageDown'].includes(e.key)) {
+    e.preventDefault();
+    slides[Math.min(current + 1, slides.length - 1)].scrollIntoView({ behavior: 'smooth' });
+  } else if (['ArrowUp','ArrowLeft','PageUp'].includes(e.key)) {
+    e.preventDefault();
+    slides[Math.max(current - 1, 0)].scrollIntoView({ behavior: 'smooth' });
+  }
+});
+</script>
+</body>
+</html>
