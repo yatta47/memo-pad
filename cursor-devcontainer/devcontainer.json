@@ -1,0 +1,21 @@
+{
+  "name": "agent-sandbox",
+  // メンテされている公式ベースイメージ。非rootユーザ vscode 同梱
+  "image": "mcr.microsoft.com/devcontainers/base:bookworm",
+  "remoteUser": "vscode",
+
+  // 必要なツールはここで足す（例。要らなければ features ごと消してよい）
+  "features": {
+    // "ghcr.io/devcontainers/features/terraform:1": {},
+    // "ghcr.io/devcontainers/features/python:1": {},
+    // "ghcr.io/devcontainers/features/node:1": {}
+  },
+
+  // 起動確認だけ。ツールを足したら検証コマンドをここに追記する
+  "postCreateCommand": "whoami && hostname && git --version"
+
+  // customizations.vscode は意図的に書かない。
+  // Cursor のフォーク(anysphere.remote-containers)で、このブロックがあると
+  // コンテナ起動に失敗する報告があるため。拡張の自動インストールは
+  // 環境が安定してから1個ずつ足す。
+}
