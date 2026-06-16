@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ECS入門 — EC2 Auto Scaling経験者のためのECS（統合版）</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { background: #dde3ee; font-family: system-ui, -apple-system, "Hiragino Sans", "Meiryo", sans-serif; margin: 0; padding: 24px 0; }
+
+    .slide {
+      aspect-ratio: 16 / 9; max-width: 1280px; width: calc(100% - 48px);
+      margin: 24px auto; background: #fff; border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.14); overflow: hidden;
+      position: relative; display: flex; flex-direction: column;
+    }
+    .slide-bar { height: 5px; width: 100%; background: linear-gradient(90deg,#4f46e5,#818cf8); flex-shrink: 0; }
+    .slide-body { flex: 1; padding: 30px 50px 24px; display: flex; flex-direction: column; overflow: hidden; }
+
+    .tag { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .06em;
+           background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe;
+           border-radius: 999px; padding: 2px 10px; text-transform: uppercase; width: fit-content; }
+    .slide-title { font-size: clamp(1.4rem,2.6vw,1.9rem); font-weight: 900; color: #1e1b4b; line-height: 1.2; margin: 6px 0 4px; }
+    .slide-sub   { font-size: .8rem; color: #6b7280; margin-bottom: 12px; }
+
+    .map-row { display:grid; grid-template-columns:1fr 56px 1fr; align-items:center; padding:6px 0; border-bottom:1px solid #f3f4f6; }
+    .map-row:last-child { border-bottom:none; }
+    .map-cell-ec2 { text-align:right; padding-right:12px; }
+    .map-cell-ecs { text-align:left; padding-left:12px; }
+    .map-connector { text-align:center; color:#a5b4fc; font-size:18px; font-weight:700; }
+    .ec2-label { font-weight:700; color:#374151; font-size:.93rem; }
+    .ecs-label { font-weight:800; color:#4f46e5; font-size:.93rem; }
+    .map-note  { font-size:.75rem; color:#9ca3af; margin-top:1px; }
+
+    .box { border-radius:8px; border:1.5px solid #e5e7eb; display:flex; flex-direction:column; align-items:center; justify-content:center; font-weight:700; }
+    .box-ec2 { background:#f1f5f9; border-color:#cbd5e1; color:#334155; }
+    .box-ecs { background:#eef2ff; border-color:#a5b4fc; color:#3730a3; }
+    .box-sidecar { background:#f9fafb; border:1px dashed #d1d5db; border-radius:6px; }
+    .arr-right { font-size:20px; color:#a5b4fc; align-self:center; padding:0 6px; }
+    .arr-down  { text-align:center; font-size:13px; color:#a5b4fc; line-height:1; padding:3px 0; }
+    .maptag { display:inline-block; font-size:11px; font-weight:700; background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; border-radius:999px; padding:1px 8px; }
+
+    /* Cluster 枠 */
+    .cluster { border:2px dashed #6366f1; border-radius:13px; padding:9px 12px 11px; position:relative; }
+    .cluster-label { font-size:.7rem; font-weight:800; color:#6366f1; letter-spacing:.04em; margin-bottom:7px; }
+
+    .callout      { background:#eef2ff; border-left:4px solid #6366f1; border-radius:0 8px 8px 0; padding:10px 16px; font-size:.82rem; color:#312e81; }
+    .callout-warn { background:#fffbeb; border-left:4px solid #f59e0b; border-radius:0 8px 8px 0; padding:10px 16px; font-size:.82rem; color:#78350f; }
+
+    /* PUNCH = 各スライドの「伝えたいこと」。主役級に強調 */
+    .punch {
+      margin-top:14px; background:#4f46e5; color:#fff; border-radius:11px;
+      padding:15px 22px; font-size:1.1rem; line-height:1.5; font-weight:600;
+      display:flex; gap:14px; align-items:flex-start; box-shadow:0 6px 18px rgba(79,70,229,.30);
+    }
+    .punch::before { content:"POINT"; flex:none; background:#fff; color:#4f46e5;
+      font-size:.7rem; font-weight:900; letter-spacing:.07em; padding:4px 9px; border-radius:6px; margin-top:3px; }
+    .punch b { color:#fff; font-weight:900; }
+    .punch-warn { background:#c2410c; box-shadow:0 6px 18px rgba(194,65,12,.30); }
+    .punch-warn::before { content:"注意"; color:#c2410c; }
+
+    .data-table { width:100%; border-collapse:collapse; font-size:.85rem; }
+    .data-table th { background:#1e1b4b; color:#c7d2fe; font-weight:700; text-align:left; padding:9px 14px; font-size:.78rem; }
+    .data-table td { padding:8px 14px; border-bottom:1px solid #f1f1f7; color:#374151; }
+    .data-table tr:nth-child(even) td { background:#fafaff; }
+
+    #page-counter { position:fixed; bottom:14px; right:18px; background:rgba(30,27,75,.88);
+      color:#c7d2fe; font-size:12px; font-weight:700; padding:5px 13px; border-radius:999px; z-index:60; letter-spacing:.05em; }
+
+    @media print {
+      body { background:#fff; padding:0; }
+      .slide { break-inside:avoid; page-break-after:always; box-shadow:none; margin:0; border-radius:0; max-width:none; width:100%; aspect-ratio:16/9; }
+      #page-counter { display:none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- 1 表紙 -->
+<div class="slide" id="slide-1">
+  <div class="slide-bar"></div>
+  <div class="slide-body justify-center" style="background:linear-gradient(135deg,#1e1b4b 0%,#312e81 60%,#3730a3 100%);">
+    <span class="tag" style="background:rgba(255,255,255,.12); color:#a5b4fc; border-color:rgba(165,180,252,.3);">運用初心者向け / 20–30分</span>
+    <h1 style="font-size:clamp(2rem,4vw,3rem); font-weight:900; color:#fff; line-height:1.15; margin:20px 0 12px;">Amazon ECS 入門</h1>
+    <p style="font-size:clamp(1rem,2vw,1.35rem); font-weight:700; color:#a5b4fc; margin:0 0 24px;">EC2 Auto Scaling の経験を<br>そのまま ECS に写像して理解する</p>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <span style="background:rgba(255,255,255,.1); border:1px solid rgba(165,180,252,.4); border-radius:8px; padding:6px 14px; color:#c7d2fe; font-size:.82rem;">Launch Template → Task Definition</span>
+      <span style="background:rgba(255,255,255,.1); border:1px solid rgba(165,180,252,.4); border-radius:8px; padding:6px 14px; color:#c7d2fe; font-size:.82rem;">EC2 → Task</span>
+      <span style="background:rgba(255,255,255,.1); border:1px solid rgba(165,180,252,.4); border-radius:8px; padding:6px 14px; color:#c7d2fe; font-size:.82rem;">ASG → ECS Service</span>
+      <span style="background:rgba(255,255,255,.1); border:1px solid rgba(165,180,252,.4); border-radius:8px; padding:6px 14px; color:#c7d2fe; font-size:.82rem;">Desired Capacity → Desired Count</span>
+    </div>
+    <div style="margin-top:auto; font-size:.78rem; color:#6366f1;">2026-06-16</div>
+  </div>
+</div>
+
+<!-- 2 比較① EC2構成 -->
+<div class="slide" id="slide-2">
+  <div class="slide-bar"></div>
+  <div class="slide-body">
+    <span class="tag">まず知っている世界から</span>
+    <h2 class="slide-title">EC2 + Auto Scaling の構成と用語</h2>
+    <p class="slide-sub">「設計図を元に実体を起動し、その数を維持する」── この骨格を覚えておく</p>
+    <div style="flex:1; display:flex; flex-direction:column; justify-content:center;">
+      <div style="display:flex; justify-content:center;">
+        <div class="box box-ec2" style="padding:10px 22px; font-size:.92rem;">Launch Template <span style="font-weight:400; color:#64748b;">（設計図）</span>
+          <div style="display:flex; gap:8px; margin-top:6px;">
+            <span style="background:#e2e8f0; border-radius:5px; padding:1px 8px; font-size:.72rem; color:#475569;">AMI</span>
+            <span style="background:#e2e8f0; border-radius:5px; padding:1px 8px; font-size:.72rem; color:#475569;">UserData</span>
+          </div>
+        </div>
+      </div>
+      <div class="arr-down">▼ 元に起動</div>
+      <div style="display:flex; align-items:stretch; gap:6px;">
+        <div class="box box-ec2" style="align-self:center; padding:18px 16px; font-size:.85rem;">ALB</div>
+        <span class="arr-right">→</span>
+        <div style="flex:1; border:2px solid #94a3b8; border-radius:12px; padding:12px 14px;">
+          <div style="font-size:.78rem; font-weight:700; color:#475569; margin-bottom:8px;">Auto Scaling Group
+            <span style="background:#475569; color:#fff; border-radius:5px; padding:1px 8px; font-size:.72rem; margin-left:6px;">Desired Capacity = 3</span></div>
+          <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px;">
+            <div class="box box-ec2" style="padding:14px 0; font-size:.85rem;">EC2<span style="font-size:.66rem; font-weight:400; color:#64748b; margin-top:3px;">Instance Profile</span></div>
+            <div class="box box-ec2" style="padding:14px 0; font-size:.85rem;">EC2<span style="font-size:.66rem; font-weight:400; color:#64748b; margin-top:3px;">Instance Profile</span></div>
+            <div class="box box-ec2" style="padding:14px 0; font-size:.85rem;">EC2<span style="font-size:.66rem; font-weight:400; color:#64748b; margin-top:3px;">Instance Profile</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="punch">EC2運用は <b>「Launch Template を元に EC2 を起動し、ASG がその台数（Desired Capacity）を維持する」</b>。この骨格だけ頭に置く。</div>
+  </div>
+</div>
+
+<!-- 3 比較② ECS構成（Cluster入り） -->
+<div class="slide" id="slide-3">
+  <div class="slide-bar"></div>
+  <div class="slide-body">
+    <span class="tag">同じ骨格で ECS を見る</span>
+    <h2 class="slide-title">ECS の構成</h2>
+    <p class="slide-sub">並べると箱の形は同じ。Service と Task は Cluster という箱の中で動く</p>
+    <div style="flex:1; display:flex; flex-direction:column; justify-content:center;">
+      <div style="display:flex; justify-content:center;">
+        <div class="box box-ecs" style="padding:10px 22px; font-size:.92rem;">Task Definition <span style="font-weight:400; color:#818cf8;">（設計図）</span>
+          <div style="display:flex; gap:8px; margin-top:6px;">
+            <span style="background:#e0e7ff; border-radius:5px; padding:1px 8px; font-size:.72rem; color:#4338ca;">Docker Image</span>
+            <span style="background:#e0e7ff; border-radius:5px; padding:1px 8px; font-size:.72rem; color:#4338ca;">env / command</span>
+          </div>
+        </div>
+      </div>
+      <div class="arr-down" style="color:#818cf8;">▼ 元に起動</div>
+      <div style="display:flex; align-items:stretch; gap:6px;">
+        <div class="box box-ec2" style="align-self:center; padding:18px 16px; font-size:.85rem;">ALB</div>
+        <span class="arr-right">→</span>
+        <!-- Cluster 枠 -->
+        <div class="cluster" style="flex:1;">
+          <div class="cluster-label">Cluster（Task / Service を置く箱）</div>
+          <div style="border:2px solid #6366f1; border-radius:10px; padding:10px 14px; background:#fafaff;">
+            <div style="font-size:.78rem; font-weight:700; color:#4f46e5; margin-bottom:8px;">ECS Service
+              <span style="background:#4f46e5; color:#fff; border-radius:5px; padding:1px 8px; font-size:.72rem; margin-left:6px;">Desired Count = 3</span></div>
+            <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px;">
+              <div class="box box-ecs" style="padding:12px 0; font-size:.85rem;">Task<span style="font-size:.66rem; font-weight:400; color:#818cf8; margin-top:3px;">Task Role</span></div>
+              <div class="box box-ecs" style="padding:12px 0; font-size:.85rem;">Task<span style="font-size:.66rem; font-weight:400; color:#818cf8; margin-top:3px;">Task Role</span></div>
+              <div class="box box-ecs" style="padding:12px 0; font-size:.85rem;">Task<span style="font-size:.66rem; font-weight:400; color:#818cf8; margin-top:3px;">Task Role</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="punch">設計図＝Task Definition、実体＝Task、数を維持する係＝ECS Service。<b>それらをまとめて置く箱が Cluster</b>。</div>
+  </div>
+</div>
+
+<!-- 4 比較③ 重ね（Cluster入り） -->
+<div class="slide" id="slide-4">
+  <div class="slide-bar"></div>
+  <div class="slide-body">
+    <span class="tag">どこが EC2 の何に当たるか</span>
+    <h2 class="slide-title">ECS の構成に EC2 を重ねる</h2>
+    <p class="slide-sub">③の図はそのまま。各要素に <span class="maptag">= EC2側の名前</span> を貼っただけ ── 形は変わらない</p>
+    <div style="flex:1; display:flex; flex-direction:column; justify-content:center;">
+      <div style="display:flex; justify-content:center;">
+        <div class="box box-ecs" style="padding:10px 22px; font-size:.92rem;">
+          <div>Task Definition <span class="maptag" style="margin-left:4px;">= Launch Template</span></div>
+          <div style="display:flex; gap:6px; margin-top:6px; align-items:center;">
+            <span style="background:#e0e7ff; border-radius:5px; padding:1px 8px; font-size:.72rem; color:#4338ca;">Docker Image</span><span class="maptag">= AMI</span>
+            <span style="background:#e0e7ff; border-radius:5px; padding:1px 8px; font-size:.72rem; color:#4338ca; margin-left:4px;">env</span><span class="maptag">= UserData</span>
+          </div>
+        </div>
+      </div>
+      <div class="arr-down" style="color:#818cf8;">▼ 元に起動</div>
+      <div style="display:flex; align-items:stretch; gap:6px;">
+        <div class="box box-ec2" style="align-self:center; padding:14px 12px; font-size:.8rem;">ALB<span class="maptag" style="margin-top:4px;">変わらず</span></div>
+        <span class="arr-right">→</span>
+        <div class="cluster" style="flex:1;">
+          <div class="cluster-label">Cluster <span class="maptag" style="margin-left:4px;">= 対応なし（ECS固有）</span></div>
+          <div style="border:2px solid #6366f1; border-radius:10px; padding:10px 14px; background:#fafaff;">
+            <div style="font-size:.78rem; font-weight:700; color:#4f46e5; margin-bottom:8px; display:flex; flex-wrap:wrap; gap:6px; align-items:center;">ECS Service <span class="maptag">= Auto Scaling Group</span>
+              <span style="background:#4f46e5; color:#fff; border-radius:5px; padding:1px 8px; font-size:.72rem;">Desired Count = 3</span><span class="maptag">= Desired Capacity</span></div>
+            <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px;">
+              <div class="box box-ecs" style="padding:12px 0; font-size:.85rem;">Task<span class="maptag" style="margin-top:4px;">= EC2</span></div>
+              <div class="box box-ecs" style="padding:12px 0; font-size:.85rem;">Task<span class="maptag" style="margin-top:4px;">= EC2</span></div>
+              <div class="box box-ecs" style="padding:12px 0; font-size:.85rem;">Task<span class="maptag" style="margin-top:4px;">= EC2</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="punch">大半は <b>知っている言葉の置き換え</b>。ただし <b>Cluster だけは EC2 側に対応物がない ECS 固有の概念</b>。</div>
+  </div>
+</div>
+
+<!-- 5 対訳表 -->
+<div class="slide" id="slide-5">
+  <div class="slide-bar"></div>
+  <div class="slide-body">
+    <span class="tag">対応関係 一覧</span>
+    <h2 class="slide-title">知っている言葉に置き換えるだけ</h2>
+    <p class="slide-sub">左の EC2 用語を右の ECS 用語に読み替えれば全体像が掴める</p>
+    <div style="display:grid; grid-template-columns:1fr 56px 1fr; margin-bottom:2px;">
+      <div style="text-align:right; padding-right:12px; font-size:.75rem; font-weight:700; color:#64748b; letter-spacing:.06em;">EC2 Auto Scaling</div><div></div>
+      <div style="text-align:left; padding-left:12px; font-size:.75rem; font-weight:700; color:#4f46e5; letter-spacing:.06em;">ECS</div>
+    </div>
+    <div style="flex:1; display:flex; flex-direction:column; justify-content:space-between;">
+      <div class="map-row"><div class="map-cell-ec2"><div class="ec2-label">Launch Template</div><div class="map-note">何をどう起動するかの定義</div></div><div class="map-connector">→</div><div class="map-cell-ecs"><div class="ecs-label">Task Definition</div><div class="map-note">コンテナ・CPU・メモリ・Role などを定義する設計図</div></div></div>
+      <div class="map-row" style="background:#f8f8ff;"><div class="map-cell-ec2"><div class="ec2-label">AMI</div><div class="map-note">アプリが入った実行イメージ</div></div><div class="map-connector">→</div><div class="map-cell-ecs"><div class="ecs-label">Docker Image</div><div class="map-note">コンテナの実行イメージ</div></div></div>
+      <div class="map-row"><div class="map-cell-ec2"><div class="ec2-label">EC2 インスタンス</div><div class="map-note">実際に動いている実体</div></div><div class="map-connector">→</div><div class="map-cell-ecs"><div class="ecs-label">Task</div><div class="map-note">Definition から起動された実体（複数コンテナを含む）</div></div></div>
+      <div class="map-row" style="background:#f8f8ff;"><div class="map-cell-ec2"><div class="ec2-label">Auto Scaling Group</div><div class="map-note">台数を指定・維持する係</div></div><div class="map-connector">→</div><div class="map-cell-ecs"><div class="ecs-label">ECS Service</div><div class="map-note">Task 数を指定・維持する係</div></div></div>
+      <div class="map-row"><div class="map-cell-ec2"><div class="ec2-label">Desired Capacity</div><div class="map-note">何台維持したいか</div></div><div class="map-connector">→</div><div class="map-cell-ecs"><div class="ecs-label">Desired Count</div><div class="map-note">何個維持したいか</div></div></div>
+      <div class="map-row" style="background:#f8f8ff;"><div class="map-cell-ec2"><div class="ec2-label">Instance Refresh</div><div class="map-note">旧インスタンスを新しいものに入れ替え</div></div><div class="map-connector">→</div><div class="map-cell-ecs"><div class="ecs-label">ECS Deployment</div><div class="map-note">旧 Task を新 Task に入れ替え</div></div></div>
+      <div class="map-row"><div class="map-cell-ec2"><div class="ec2-label">Instance Profile</div><div class="map-note">EC2 が AWS を触る権限</div></div><div class="map-connector">→</div><div class="map-cell-ecs"><div class="ecs-label">Task Role</div><div class="map-note">コンテナが AWS を触る権限</div></div></div>
+      <div class="map-row" style="background:#f8f8ff;"><div class="map-cell-ec2"><div class="ec2-label" style="color:#9ca3af;">（対応なし）</div></div><div class="map-connector">→</div><div class="map-cell-ecs"><div class="ecs-label">Cluster</div><div class="map-note">Task / Service を置く論理的な場所（ECS 固有）</div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- 11 アーキテクチャ（リクエスト経路 + 監視経路） -->
+<div class="slide" id="slide-6">
+  <div class="slide-bar"></div>
+  <div class="slide-body">
+    <span class="tag">アーキテクチャ全体</span>
+    <h2 class="slide-title">全体アーキテクチャ</h2>
+    <p class="slide-sub">外から来るリクエストと、外へ出ていくログ・メトリクスを1枚で見る</p>
+
+    <div style="flex:1; display:flex; align-items:center; justify-content:center; gap:9px;">
+      <!-- ingress -->
+      <div class="box box-ec2" style="padding:16px 14px; font-size:.86rem;">Client</div>
+      <span class="arr-right" style="font-size:24px;">→</span>
+      <div style="border:1.5px solid #d8b4fe; background:#fdf4ff; border-radius:11px; padding:11px 12px;">
+        <div style="font-size:.78rem; font-weight:800; color:#6b21a8; margin-bottom:7px;">ALB</div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <div style="background:#fff; border:1px solid #e9d5ff; border-radius:7px; padding:7px 11px; font-size:.8rem; color:#6b21a8; text-align:center;">Listener <span style="color:#a855f7;">:443</span></div>
+          <div style="text-align:center; color:#c4b5fd; font-size:14px; line-height:1;">▼</div>
+          <div style="background:#fff; border:1px solid #e9d5ff; border-radius:7px; padding:7px 11px; font-size:.8rem; color:#6b21a8; text-align:center;">Listener Rule <span style="color:#a855f7;">path/host</span></div>
+          <div style="text-align:center; color:#c4b5fd; font-size:14px; line-height:1;">▼</div>
+          <div style="background:#fff; border:1px solid #e9d5ff; border-radius:7px; padding:7px 11px; font-size:.8rem; color:#6b21a8; text-align:center;">Target Group</div>
+        </div>
+      </div>
+      <span class="arr-right" style="font-size:24px;">→</span>
+      <!-- ECS: Cluster に複数 Service、各 Service に 1+ Task（コンテナ入り） + ECR -->
+      <div style="display:flex; flex-direction:column; align-items:stretch; gap:5px;">
+      <div class="cluster" style="padding:9px 13px 11px;">
+        <div class="cluster-label" style="font-size:.74rem;">Cluster（複数 Service を内包）</div>
+        <div style="display:flex; flex-direction:column; gap:7px;">
+          <!-- Service A: 説明用（濃い） -->
+          <div style="border:1.5px solid #6366f1; border-radius:10px; background:#fafaff; padding:8px 11px;">
+            <div style="font-size:.72rem; font-weight:700; color:#4f46e5; margin-bottom:6px;">Service A（Web）　<span style="background:#4f46e5; color:#fff; border-radius:5px; padding:1px 7px; font-size:.64rem;">Desired Count = 3 → Task ×3</span></div>
+            <!-- Task 枠（中にコンテナ） -->
+            <div style="border:1.5px dashed #6366f1; border-radius:9px; background:#fff; padding:7px 9px;">
+              <div style="font-size:.66rem; font-weight:700; color:#4f46e5; margin-bottom:5px;">Task（手前の1個）</div>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <div style="background:#eef2ff; border:1px solid #6366f1; border-radius:7px; padding:7px 11px; font-size:.78rem; color:#3730a3; font-weight:700;">nginx <span style="font-size:.62rem; font-weight:400; color:#818cf8;">:80</span></div>
+                <span style="color:#a5b4fc; font-size:16px;">→</span>
+                <div style="background:#eef2ff; border:1px solid #818cf8; border-radius:7px; padding:7px 11px; font-size:.78rem; color:#3730a3; font-weight:700;">app <span style="font-size:.62rem; font-weight:400; color:#818cf8;">Kestrel</span></div>
+                <div style="display:flex; flex-direction:column; gap:3px; margin-left:4px;">
+                  <div class="box-sidecar" style="padding:2px 7px; font-size:.6rem; color:#6b7280;">firelens</div>
+                  <div class="box-sidecar" style="padding:2px 7px; font-size:.6rem; color:#6b7280;">newrelic-infra</div>
+                  <div class="box-sidecar" style="padding:2px 7px; font-size:.6rem; color:#6b7280;">dotnet-counters</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Service B: 薄い -->
+          <div style="border:1.5px solid #c7d2fe; border-radius:10px; background:#f4f5ff; padding:6px 11px; opacity:.6;">
+            <div style="font-size:.68rem; font-weight:700; color:#6366f1; margin-bottom:4px;">Service B（1 個以上の Task）</div>
+            <div style="display:flex; gap:6px;"><div class="box box-ecs" style="padding:6px 16px; font-size:.64rem;">Task</div><div class="box box-ecs" style="padding:6px 16px; font-size:.64rem;">Task</div></div>
+          </div>
+          <!-- Service C: 薄い -->
+          <div style="border:1.5px solid #c7d2fe; border-radius:10px; background:#f4f5ff; padding:6px 11px; opacity:.45;">
+            <div style="font-size:.68rem; font-weight:700; color:#6366f1; margin-bottom:4px;">Service C</div>
+            <div style="display:flex; gap:6px;"><div class="box box-ecs" style="padding:6px 16px; font-size:.64rem;">Task</div></div>
+          </div>
+        </div>
+      </div>
+      <div style="text-align:center; color:#a5b4fc; font-size:13px; line-height:1;">▲ 起動時に image を pull</div>
+      <div style="border:1.5px solid #fcd34d; background:#fffbeb; border-radius:9px; padding:7px 12px; text-align:center;">
+        <div style="font-size:.78rem; font-weight:800; color:#92400e;">ECR</div>
+        <div style="font-size:.6rem; color:#b45309;">Docker Image レジストリ（イメージの置き場）</div>
+      </div>
+      </div>
+      <!-- 監視の流れ -->
+      <div style="display:flex; flex-direction:column; align-items:center; gap:3px;">
+        <div style="font-size:.66rem; color:#94a3b8; white-space:nowrap;">logs / metrics</div>
+        <span class="arr-right" style="padding:0; font-size:24px;">→</span>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <div style="background:#fff7ed; border:1px solid #fed7aa; border-radius:9px; padding:10px 14px; font-size:.8rem; color:#9a3412; font-weight:700; text-align:center;">CloudWatch<br><span style="font-weight:400; font-size:.72rem;">Logs / Metrics</span></div>
+        <div style="background:#ecfeff; border:1px solid #a5f3fc; border-radius:9px; padding:10px 14px; font-size:.8rem; color:#155e75; font-weight:700; text-align:center;">New Relic<br><span style="font-weight:400; font-size:.72rem;">Logs / Metrics</span></div>
+      </div>
+    </div>
+
+    <div class="punch"><div style="line-height:1.6;">外から見れば <b>ALB（Listener → Rule → Target Group）→ Task の nginx → app</b><br>内から見れば <b>サイドカーが各コンテナのログ・メトリクスを CloudWatch / New Relic へ送る</b></div></div>
+  </div>
+</div>
+
+<!-- 6 基本用語（表形式） -->
+<div class="slide" id="slide-7">
+  <div class="slide-bar"></div>
+  <div class="slide-body">
+    <span class="tag">基本用語</span>
+    <h2 class="slide-title">まず覚える 7 つのことば</h2>
+    <p class="slide-sub">対応する EC2 の用語と一緒に覚えると入りやすい</p>
+    <table class="data-table">
+      <thead><tr><th style="width:20%;">ECS 用語</th><th style="width:22%;">EC2 の対応</th><th>ひとことで言うと</th></tr></thead>
+      <tbody>
+        <tr><td style="font-weight:800; color:#1e1b4b;">Cluster</td><td style="color:#9ca3af;">対応なし（ECS固有）</td><td>Task / Service を動かす<b>場所の名前</b>。EC2 の台数とは別の概念。</td></tr>
+        <tr><td style="font-weight:800; color:#4f46e5;">Task Definition</td><td>Launch Template</td><td>Image・CPU・メモリ・ポート・Role・サイドカー構成を定義する<b>設計図</b>。</td></tr>
+        <tr><td style="font-weight:800; color:#1e1b4b;">Task</td><td>EC2 インスタンス</td><td>設計図から起動された<b>実体</b>。複数コンテナをまとめた実行単位。</td></tr>
+        <tr><td style="font-weight:800; color:#1e1b4b;">Service</td><td>Auto Scaling Group</td><td>Task を<b>指定数だけ維持</b>する仕組み。常時起動アプリはここで動かす。</td></tr>
+        <tr><td style="font-weight:800; color:#1e1b4b;">Desired Count</td><td>Desired Capacity</td><td>Service が維持したい<b>Task 数</b>。これが ECS 運用の中心軸。</td></tr>
+        <tr><td style="font-weight:800; color:#1e1b4b;">Fargate<br><span style="font-size:.74rem; font-weight:600; color:#6366f1;">起動タイプ</span></td><td style="color:#9ca3af;">対応なし（起動タイプ）</td><td><b>AWS がマネージドで管理してくれるコンテナ基盤</b>（起動タイプの1つ）。EC2 を自分で持たなくてよい。別の起動タイプに <b>ECS on EC2</b>（自前の EC2 に載せる方式）がある。</td></tr>
+        <tr><td style="font-weight:800; color:#1e1b4b;">ECR</td><td>AMI の置き場に相当</td><td><b>Docker Image を保管するレジストリ</b>。push したイメージを ECS が起動時に pull する。</td></tr>
+      </tbody>
+    </table>
+    <div class="punch"><b>Task Definition がクラス定義、Task がそのインスタンス。</b>土台は Fargate（AWS任せ）か ECS on EC2（自前）を選ぶ。</div>
+  </div>
+</div>
+
+<!-- 7 Clusterは -->
+<div class="slide" id="slide-8">
+  <div class="slide-bar"></div>
+  <div class="slide-body">
+    <span class="tag">Cluster の役割</span>
+    <h2 class="slide-title">Cluster は「Task と Service を置く箱」</h2>
+    <p class="slide-sub">EC2 Auto Scaling に直接の対応物はない。ECS 固有の「実行環境のまとまり」</p>
+    <div style="flex:1; display:flex; align-items:center; justify-content:center;">
+      <div class="cluster" style="width:88%;">
+        <div class="cluster-label">Cluster（例：prod-cluster）</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+          <div style="border:2px solid #6366f1; border-radius:10px; padding:10px 14px; background:#fafaff;">
+            <div style="font-size:.76rem; font-weight:700; color:#4f46e5; margin-bottom:7px;">Service A（Web）</div>
+            <div style="display:flex; gap:8px;">
+              <div class="box box-ecs" style="padding:10px 0; font-size:.78rem; flex:1;">Task</div>
+              <div class="box box-ecs" style="padding:10px 0; font-size:.78rem; flex:1;">Task</div>
+            </div>
+          </div>
+          <div style="border:2px solid #818cf8; border-radius:10px; padding:10px 14px; background:#fafaff;">
+            <div style="font-size:.76rem; font-weight:700; color:#4f46e5; margin-bottom:7px;">Service B（Batch / API）</div>
+            <div style="display:flex; gap:8px;">
+              <div class="box box-ecs" style="padding:10px 0; font-size:.78rem; flex:1;">Task</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-top:4px;">
+      <div class="callout" style="font-size:.78rem;">1 つの Cluster に<b>複数の Service</b> を同居できる</div>
+      <div class="callout" style="font-size:.78rem;">Fargate / EC2 の<b>容量（Capacity Provider）を紐づける単位</b></div>
+      <div class="callout" style="font-size:.78rem;">権限・監視・コスト配分の<b>区切り</b>に使える</div>
+    </div>
+    <div class="punch">Cluster は EC2 の台数そのものではなく、<b>Service と Task を載せる「実行環境の名前空間」</b>。まず器、その中に Service を置く。</div>
+  </div>
+</div>
+
+<!-- 8 Serviceは（Task数を守る） -->
+<div class="slide" id="slide-9">
+  <div class="slide-bar"></div>
+  <div class="slide-body">
+    <span class="tag">Service の役割</span>
+    <h2 class="slide-title">Service は「Task 数を守る係」</h2>
+    <p class="slide-sub">ASG が EC2 台数を維持するように、Service は Task 個数を維持する</p>
+    <div style="display:grid; grid-template-columns:1fr 40px 1fr 40px 1fr; flex:1; align-items:center;">
+      <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+        <div style="font-size:.75rem; font-weight:700; color:#64748b; background:#f1f5f9; border-radius:6px; padding:4px 10px;">正常 — Desired Count = 3</div>
+        <div style="display:flex; gap:8px; margin-top:4px;">
+          <div class="box box-ecs" style="width:66px; height:54px; font-size:.8rem;">Task</div><div class="box box-ecs" style="width:66px; height:54px; font-size:.8rem;">Task</div><div class="box box-ecs" style="width:66px; height:54px; font-size:.8rem;">Task</div>
+        </div>
+        <div style="font-size:.72rem; color:#22c55e; font-weight:600; margin-top:4px;">Running 3 / 3</div>
+      </div>
+      <div class="arr-right" style="text-align:center;">→</div>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+        <div style="font-size:.75rem; font-weight:700; color:#ef4444; background:#fef2f2; border-radius:6px; padding:4px 10px;">Task が 1 個停止</div>
+        <div style="display:flex; gap:8px; margin-top:4px;">
+          <div class="box box-ecs" style="width:66px; height:54px; font-size:.8rem;">Task</div><div class="box box-ecs" style="width:66px; height:54px; font-size:.8rem;">Task</div>
+          <div style="width:66px; height:54px; border:2px dashed #fca5a5; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:1.4rem; color:#fca5a5;">✕</div>
+        </div>
+        <div style="font-size:.72rem; color:#ef4444; font-weight:600; margin-top:4px;">Running 2 / 3 → 不足！</div>
+      </div>
+      <div class="arr-right" style="text-align:center;">→</div>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+        <div style="font-size:.75rem; font-weight:700; color:#22c55e; background:#f0fdf4; border-radius:6px; padding:4px 10px;">Service が自動で起こし直す</div>
+        <div style="display:flex; gap:8px; margin-top:4px;">
+          <div class="box box-ecs" style="width:66px; height:54px; font-size:.8rem;">Task</div><div class="box box-ecs" style="width:66px; height:54px; font-size:.8rem;">Task</div>
+          <div style="width:66px; height:54px; background:#dcfce7; border:2px solid #22c55e; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:.75rem; font-weight:700; color:#15803d;">new<br>Task</div>
+        </div>
+        <div style="font-size:.72rem; color:#22c55e; font-weight:600; margin-top:4px;">Running 3 / 3 ✓ 復旧</div>
+      </div>
+    </div>
+    <div class="punch"><b>Service Scheduler が Task Definition を元に新しい Task を起動し、常に Desired Count を満たし続ける。</b>これが ECS 運用の根幹。</div>
+  </div>
+</div>
+
+<!-- 9 Serviceが管理するもの -->
+<div class="slide" id="slide-10">
+  <div class="slide-bar"></div>
+  <div class="slide-body">
+    <span class="tag">Service の中身</span>
+    <h2 class="slide-title">Service が管理しているもの</h2>
+    <p class="slide-sub">「Task 数を守る」だけでなく、どう起動し・どう公開し・どう増減するかも Service が持つ</p>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px 18px; flex:1; align-content:center;">
+      <div style="display:flex; gap:10px; align-items:flex-start;"><div style="background:#4f46e5; color:#fff; border-radius:7px; padding:5px 10px; font-size:.72rem; font-weight:800; white-space:nowrap;">どれを</div><div style="font-size:.85rem; color:#374151;"><b>使う Task Definition の Revision</b><br><span style="font-size:.74rem; color:#9ca3af;">どの版を起動するか（rev:12 など）を指定</span></div></div>
+      <div style="display:flex; gap:10px; align-items:flex-start;"><div style="background:#4f46e5; color:#fff; border-radius:7px; padding:5px 10px; font-size:.72rem; font-weight:800; white-space:nowrap;">何個</div><div style="font-size:.85rem; color:#374151;"><b>Desired Count</b><br><span style="font-size:.74rem; color:#9ca3af;">維持する Task 数</span></div></div>
+      <div style="display:flex; gap:10px; align-items:flex-start;"><div style="background:#4f46e5; color:#fff; border-radius:7px; padding:5px 10px; font-size:.72rem; font-weight:800; white-space:nowrap;">権限</div><div style="font-size:.85rem; color:#374151;"><b>IAM Role（Task Role / Execution Role）</b><br><span style="font-size:.74rem; color:#9ca3af;">定義は Task Definition 側。Service はそれを使って起動する</span></div></div>
+      <div style="display:flex; gap:10px; align-items:flex-start;"><div style="background:#4f46e5; color:#fff; border-radius:7px; padding:5px 10px; font-size:.72rem; font-weight:800; white-space:nowrap;">増減</div><div style="font-size:.85rem; color:#374151;"><b>Auto Scaling ポリシー</b><br><span style="font-size:.74rem; color:#9ca3af;">Target Tracking / Step / Scheduled（Application Auto Scaling）</span></div></div>
+      <div style="display:flex; gap:10px; align-items:flex-start;"><div style="background:#6366f1; color:#fff; border-radius:7px; padding:5px 10px; font-size:.72rem; font-weight:800; white-space:nowrap;">公開</div><div style="font-size:.85rem; color:#374151;"><b>ロードバランサー紐付け</b><br><span style="font-size:.74rem; color:#9ca3af;">Target Group への Task 登録 / 解除</span></div></div>
+      <div style="display:flex; gap:10px; align-items:flex-start;"><div style="background:#6366f1; color:#fff; border-radius:7px; padding:5px 10px; font-size:.72rem; font-weight:800; white-space:nowrap;">入替</div><div style="font-size:.85rem; color:#374151;"><b>デプロイ設定</b><br><span style="font-size:.74rem; color:#9ca3af;">minimum healthy percent / maximum percent, rolling / Blue-Green</span></div></div>
+    </div>
+    <div class="punch"><b>Service = 「どの Revision を・何個・どんな権限で・どう増減し・どこに公開するか」をまとめて握る運用主体。</b></div>
+  </div>
+</div>
+
+<!-- 10 今回のアプリ構成（Task中身 + サイドカーとは） -->
+<div class="slide" id="slide-11">
+  <div class="slide-bar"></div>
+  <div class="slide-body">
+    <span class="tag">今回のアプリ構成</span>
+    <h2 class="slide-title">1 Task = アプリ本体 + サイドカーのセット</h2>
+    <p class="slide-sub">今回の Task には 5 つのコンテナが入る。増減・障害対応はこのセット単位</p>
+    <div style="display:grid; grid-template-columns:auto 1fr; gap:20px; flex:1; align-items:start;">
+      <div style="border:2.5px solid #6366f1; border-radius:14px; padding:13px 16px; min-width:228px; background:#f5f3ff;">
+        <div style="font-size:.8rem; font-weight:800; color:#4f46e5; margin-bottom:9px; letter-spacing:.04em;">Task（1 個）</div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <div style="background:#fff; border:1.5px solid #6366f1; border-radius:8px; padding:6px 12px;"><div style="font-weight:700; color:#3730a3; font-size:.85rem;">nginx</div><div style="font-size:.7rem; color:#6366f1;">リバースプロキシ（入口）</div></div>
+          <div style="background:#fff; border:1.5px solid #818cf8; border-radius:8px; padding:6px 12px;"><div style="font-weight:700; color:#3730a3; font-size:.85rem;">app / Kestrel</div><div style="font-size:.7rem; color:#818cf8;">業務処理本体（.NET）</div></div>
+          <div style="font-size:.66rem; color:#9ca3af; font-weight:700; margin-top:2px;">── サイドカー ──</div>
+          <div class="box-sidecar" style="padding:6px 12px;"><div style="font-weight:700; color:#374151; font-size:.85rem;">firelens</div><div style="font-size:.7rem; color:#9ca3af;">ログルーター（転送係）</div></div>
+          <div class="box-sidecar" style="padding:6px 12px;"><div style="font-weight:700; color:#374151; font-size:.85rem;">newrelic-infra</div><div style="font-size:.7rem; color:#9ca3af;">監視エージェント（メトリクス）</div></div>
+          <div class="box-sidecar" style="padding:6px 12px;"><div style="font-weight:700; color:#374151; font-size:.85rem;">dotnet-counters</div><div style="font-size:.7rem; color:#9ca3af;">.NET ランタイムの計測</div></div>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:11px; padding-top:2px;">
+        <div style="border:1.5px solid #6366f1; border-radius:10px; padding:11px 16px; background:#eef2ff;">
+          <div style="font-weight:800; color:#3730a3; font-size:.88rem; margin-bottom:4px;">サイドカーとは？</div>
+          <div style="font-size:.8rem; color:#4338ca; line-height:1.55;">アプリ本体と<b>同じ Task の中で並走する補助コンテナ</b>。本体の責務（業務処理）を変えずに、ログ転送・監視・計測などの横断機能を足す。本体と<b>ライフサイクル・ネットワーク（localhost）を共有</b>する。</div>
+        </div>
+        <div style="border:1.5px solid #e5e7eb; border-radius:10px; overflow:hidden; font-size:.78rem;">
+          <div style="display:grid; grid-template-columns:auto 1fr;">
+            <div style="padding:5px 12px; border-bottom:1px solid #f3f4f6; border-right:1px solid #f3f4f6; font-weight:600; color:#334155;">nginx</div><div style="padding:5px 12px; border-bottom:1px solid #f3f4f6; color:#6b7280;">ALB から受けた通信を app へ渡す入口</div>
+            <div style="padding:5px 12px; border-bottom:1px solid #f3f4f6; border-right:1px solid #f3f4f6; font-weight:600; color:#334155; background:#fafaff;">app / Kestrel</div><div style="padding:5px 12px; border-bottom:1px solid #f3f4f6; color:#6b7280; background:#fafaff;">実際の業務処理</div>
+            <div style="padding:5px 12px; border-bottom:1px solid #f3f4f6; border-right:1px solid #f3f4f6; font-weight:600; color:#334155;">firelens</div><div style="padding:5px 12px; border-bottom:1px solid #f3f4f6; color:#6b7280;">ログを CloudWatch / New Relic へ流す</div>
+            <div style="padding:5px 12px; border-bottom:1px solid #f3f4f6; border-right:1px solid #f3f4f6; font-weight:600; color:#334155; background:#fafaff;">newrelic-infra</div><div style="padding:5px 12px; border-bottom:1px solid #f3f4f6; color:#6b7280; background:#fafaff;">ホスト/コンテナのメトリクス収集</div>
+            <div style="padding:5px 12px; border-right:1px solid #f3f4f6; font-weight:600; color:#334155;">dotnet-counters</div><div style="padding:5px 12px; color:#6b7280;">.NET の GC・ThreadPool 等を計測</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="punch">Task を 3 個動かす = <b>nginx + app + firelens + newrelic-infra + dotnet-counters のセットを 3 セット</b>動かすこと。</div>
+  </div>
+</div>
+
+<!-- 12 Fargate vs ECS on EC2 の違い（前提） -->
+<div class="slide" id="slide-12">
+  <div class="slide-bar"></div>
+  <div class="slide-body">
+    <span class="tag">起動タイプ（前提）</span>
+    <h2 class="slide-title">Fargate と ECS on EC2 ── レイヤーが違う</h2>
+    <p class="slide-sub">違いは「Task と AWS 基盤の間に <b>EC2 という層</b> があるか」。on EC2 はその層の上に Task が載る</p>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; flex:1;">
+      <!-- Fargate: 2層 -->
+      <div style="padding:6px 14px; display:flex; flex-direction:column;">
+        <div style="font-weight:900; color:#3730a3; font-size:1.05rem;">Fargate ─ 2 層</div>
+        <div style="font-size:.76rem; color:#6366f1; margin-bottom:auto;">EC2 層がない。Task が基盤に直接載る</div>
+        <!-- stack top→bottom -->
+        <div style="display:flex; flex-direction:column; gap:0; margin:8px 0;">
+          <div style="background:#eef2ff; border:2px solid #6366f1; border-radius:9px; padding:12px; text-align:center; font-weight:800; color:#3730a3; font-size:.86rem;">Task 層<br><span style="font-size:.68rem; font-weight:400; color:#6366f1;">nginx + app + サイドカー（1Taskごとに隔離）</span></div>
+          <div style="text-align:center; color:#a5b4fc; font-size:13px; padding:3px 0;">▲ 直接載る</div>
+          <div style="background:#f8fafc; border:1.5px dashed #cbd5e1; border-radius:9px; padding:12px; text-align:center; font-weight:700; color:#94a3b8; font-size:.82rem;">AWS マネージド基盤<br><span style="font-size:.68rem; font-weight:400;">microVM / 物理（AWS が管理・見えない）</span></div>
+        </div>
+      </div>
+      <!-- ECS on EC2: 3層 -->
+      <div style="padding:6px 14px; display:flex; flex-direction:column;">
+        <div style="font-weight:900; color:#334155; font-size:1.05rem;">ECS on EC2 ─ 3 層</div>
+        <div style="font-size:.76rem; color:#64748b; margin-bottom:auto;">Task の下に <b>EC2 層</b> がある（複数 Task が相乗り）</div>
+        <div style="display:flex; flex-direction:column; gap:0; margin:8px 0;">
+          <div style="background:#eef2ff; border:2px solid #6366f1; border-radius:9px; padding:10px; text-align:center; font-weight:800; color:#3730a3; font-size:.82rem;">Task 層<br><span style="font-size:.66rem; font-weight:400; color:#6366f1;">Task / Task / Task …（EC2 に相乗り）</span></div>
+          <div style="text-align:center; color:#a5b4fc; font-size:12px; padding:2px 0;">▲ 載る</div>
+          <div style="background:#f1f5f9; border:2px solid #94a3b8; border-radius:9px; padding:10px; text-align:center; font-weight:800; color:#334155; font-size:.82rem;">EC2 層<br><span style="font-size:.66rem; font-weight:400; color:#64748b;">EC2 インスタンス（ASG で増減・自分で管理）</span></div>
+          <div style="text-align:center; color:#a5b4fc; font-size:12px; padding:2px 0;">▲</div>
+          <div style="background:#f8fafc; border:1.5px dashed #cbd5e1; border-radius:9px; padding:9px; text-align:center; font-weight:700; color:#94a3b8; font-size:.8rem;">AWS 物理基盤<br><span style="font-size:.66rem; font-weight:400;">ハイパーバイザ（AWS が管理）</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="punch"><b>ECS on EC2 は Task と基盤の間に「EC2 層」が挟まり、その上に複数 Task が載る。Fargate はその層が無く Task が直接載る。</b></div>
+  </div>
+</div>
+
+<!-- 14 デプロイ + Revisionとは -->
+<div class="slide" id="slide-13">
+  <div class="slide-bar"></div>
+  <div class="slide-body">
+    <span class="tag">デプロイ</span>
+    <h2 class="slide-title">デプロイ = Task Definition の Revision を入れ替える</h2>
+    <p class="slide-sub">EC2 では AMI + Instance Refresh。ECS では Image を <b>ECR</b> に push → Task Definition Revision → Service 更新</p>
+
+    <div style="border:1.5px solid #6366f1; border-radius:10px; padding:10px 16px; background:#eef2ff; margin-bottom:10px;">
+      <div style="font-weight:800; color:#3730a3; font-size:.86rem; margin-bottom:3px;">Revision とは？</div>
+      <div style="font-size:.8rem; color:#4338ca; line-height:1.5;">Task Definition を更新するたびに自動で採番される<b>版番号</b>（<code style="background:#fff; padding:0 5px; border-radius:4px;">myapp:11</code> → <code style="background:#fff; padding:0 5px; border-radius:4px;">myapp:12</code>）。過去の Revision は消えず残るので、<b>戻したい版を指定するだけでロールバックできる</b>。Launch Template の Version と同じ感覚。</div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:18px; flex:1;">
+      <div style="display:flex; flex-direction:column; gap:5px;">
+        <div style="font-size:.74rem; font-weight:700; color:#64748b; letter-spacing:.06em; text-transform:uppercase;">EC2 のデプロイ</div>
+        <div class="box box-ec2" style="padding:7px 12px; font-size:.8rem; justify-content:flex-start; flex-direction:row; gap:8px; align-items:center; border-radius:8px; height:40px;"><span>①</span> AMI を更新</div>
+        <div class="arr-down" style="text-align:left; padding-left:14px;">▼</div>
+        <div class="box box-ec2" style="padding:7px 12px; font-size:.8rem; justify-content:flex-start; flex-direction:row; gap:8px; align-items:center; border-radius:8px; height:40px;"><span>②</span> Launch Template を更新</div>
+        <div class="arr-down" style="text-align:left; padding-left:14px;">▼</div>
+        <div class="box box-ec2" style="padding:7px 12px; font-size:.8rem; justify-content:flex-start; flex-direction:row; gap:8px; align-items:center; border-radius:8px; height:40px;"><span>③</span> Instance Refresh → 旧 EC2 を新 EC2 に</div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:5px;">
+        <div style="font-size:.74rem; font-weight:700; color:#4f46e5; letter-spacing:.06em; text-transform:uppercase;">ECS のデプロイ</div>
+        <div class="box box-ecs" style="padding:7px 12px; font-size:.8rem; justify-content:flex-start; flex-direction:row; gap:8px; align-items:center; border-radius:8px; height:40px;"><span>①</span> Docker Image を build → <b>ECR</b> に push</div>
+        <div class="arr-down" style="text-align:left; padding-left:14px; color:#818cf8;">▼</div>
+        <div class="box box-ecs" style="padding:7px 12px; font-size:.8rem; justify-content:flex-start; flex-direction:row; gap:8px; align-items:center; border-radius:8px; height:40px;"><span>②</span> Task Definition の新 <b>Revision</b> を作成</div>
+        <div class="arr-down" style="text-align:left; padding-left:14px; color:#818cf8;">▼</div>
+        <div class="box box-ecs" style="padding:7px 12px; font-size:.8rem; justify-content:flex-start; flex-direction:row; gap:8px; align-items:center; border-radius:8px; height:40px;"><span>③</span> Service を更新 → 旧 Task を新 Task に</div>
+      </div>
+    </div>
+    <div class="punch"><b>ロールバックは「前の Revision を再適用するだけ」</b>。入れ替え割合は minimum / maximum percent で制御。</div>
+  </div>
+</div>
+
+<!-- 15 全体像 -->
+<div class="slide" id="slide-14">
+  <div class="slide-bar"></div>
+  <div class="slide-body">
+    <span class="tag">まとめ</span>
+    <h2 class="slide-title">ECS 全体像 — 1 枚で見る</h2>
+    <p class="slide-sub">写像関係と流れをひとつの図に集約</p>
+    <div style="flex:1; display:flex; flex-direction:column; justify-content:center;">
+      <div style="display:flex; justify-content:center; margin-bottom:4px;">
+        <div style="background:#1e1b4b; color:#c7d2fe; border-radius:10px; padding:8px 28px; font-weight:700; font-size:.86rem; text-align:center;">Task Definition（設計図）</div>
+      </div>
+      <div class="arr-down">▼ Desired Count をもとに Task を起動</div>
+      <div class="cluster" style="margin:0 auto; width:93%;">
+        <div class="cluster-label">Cluster</div>
+        <div style="border:2px solid #6366f1; border-radius:11px; background:#fafaff; padding:8px 12px;">
+          <div style="font-size:.72rem; font-weight:700; color:#4f46e5; margin-bottom:7px;">ECS Service（Desired Count = 3）</div>
+          <div style="display:flex; gap:12px; justify-content:center;">
+            <div style="border:2px solid #6366f1; border-radius:10px; padding:7px 11px; background:#fff; display:flex; flex-direction:column; gap:3px; min-width:128px;"><div style="font-size:.68rem; font-weight:700; color:#4f46e5;">Task 1</div><div style="background:#eef2ff; border-radius:4px; padding:1px 6px; font-size:.62rem; color:#3730a3;">nginx</div><div style="background:#eef2ff; border-radius:4px; padding:1px 6px; font-size:.62rem; color:#3730a3;">app</div><div style="background:#f9fafb; border:1px dashed #d1d5db; border-radius:4px; padding:1px 6px; font-size:.62rem; color:#9ca3af;">firelens</div><div style="background:#f9fafb; border:1px dashed #d1d5db; border-radius:4px; padding:1px 6px; font-size:.62rem; color:#9ca3af;">nr-infra / dotnet-counters</div></div>
+            <div style="border:2px solid #6366f1; border-radius:10px; padding:7px 11px; background:#fff; display:flex; flex-direction:column; gap:3px; min-width:128px;"><div style="font-size:.68rem; font-weight:700; color:#4f46e5;">Task 2</div><div style="background:#eef2ff; border-radius:4px; padding:1px 6px; font-size:.62rem; color:#3730a3;">nginx</div><div style="background:#eef2ff; border-radius:4px; padding:1px 6px; font-size:.62rem; color:#3730a3;">app</div><div style="background:#f9fafb; border:1px dashed #d1d5db; border-radius:4px; padding:1px 6px; font-size:.62rem; color:#9ca3af;">firelens</div><div style="background:#f9fafb; border:1px dashed #d1d5db; border-radius:4px; padding:1px 6px; font-size:.62rem; color:#9ca3af;">nr-infra / dotnet-counters</div></div>
+            <div style="border:2px solid #6366f1; border-radius:10px; padding:7px 11px; background:#fff; display:flex; flex-direction:column; gap:3px; min-width:128px;"><div style="font-size:.68rem; font-weight:700; color:#4f46e5;">Task 3</div><div style="background:#eef2ff; border-radius:4px; padding:1px 6px; font-size:.62rem; color:#3730a3;">nginx</div><div style="background:#eef2ff; border-radius:4px; padding:1px 6px; font-size:.62rem; color:#3730a3;">app</div><div style="background:#f9fafb; border:1px dashed #d1d5db; border-radius:4px; padding:1px 6px; font-size:.62rem; color:#9ca3af;">firelens</div><div style="background:#f9fafb; border:1px dashed #d1d5db; border-radius:4px; padding:1px 6px; font-size:.62rem; color:#9ca3af;">nr-infra / dotnet-counters</div></div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:6px; margin-top:6px; padding-left:24px;">
+        <div style="background:#f1f5f9; border:1.5px solid #cbd5e1; border-radius:8px; padding:5px 14px; font-weight:700; color:#334155; font-size:.78rem;">ALB（Listener→Rule→Target Group）</div>
+        <div style="font-size:16px; color:#a5b4fc;">→</div>
+        <div style="font-size:.74rem; color:#6b7280;">各 Task の nginx がターゲット登録される</div>
+      </div>
+    </div>
+    <div class="punch"><b>Task が増える＝セット全体が増える / Revision 入れ替え＝旧Task→新Task / ECS on EC2 は Task と EC2 の2段スケール。</b></div>
+  </div>
+</div>
+
+<!-- 16 まとめ -->
+<div class="slide" id="slide-15">
+  <div class="slide-bar"></div>
+  <div class="slide-body justify-center" style="background:linear-gradient(135deg,#f5f3ff 0%,#eef2ff 100%);">
+    <span class="tag">まとめ</span>
+    <h2 class="slide-title" style="margin-bottom:24px;">今日持ち帰る 3 つのこと</h2>
+    <div style="display:flex; flex-direction:column; gap:13px; max-width:700px; margin:0 auto; width:100%;">
+      <div style="display:flex; align-items:center; gap:16px; background:#fff; border:2px solid #6366f1; border-radius:12px; padding:15px 24px; box-shadow:0 2px 8px rgba(99,102,241,.1);">
+        <div style="font-size:2rem; font-weight:900; color:#6366f1; flex-shrink:0;">1</div>
+        <div><div style="font-weight:800; color:#1e1b4b; font-size:1rem;">ECS は「Task を運用する世界」</div><div style="font-size:.8rem; color:#6b7280; margin-top:3px;">Task / Service を Cluster に置く。インスタンス台数の代わりに Task 個数を見る。</div></div>
+      </div>
+      <div style="display:flex; align-items:center; gap:16px; background:#fff; border:2px solid #6366f1; border-radius:12px; padding:15px 24px; box-shadow:0 2px 8px rgba(99,102,241,.1);">
+        <div style="font-size:2rem; font-weight:900; color:#6366f1; flex-shrink:0;">2</div>
+        <div><div style="font-weight:800; color:#1e1b4b; font-size:1rem;">Service が Revision・Desired Count・Scaling を握る</div><div style="font-size:.8rem; color:#6b7280; margin-top:3px;">今回の 1 Task = nginx + app + firelens + newrelic-infra + dotnet-counters のセット。</div></div>
+      </div>
+      <div style="display:flex; align-items:center; gap:16px; background:#fff; border:2px solid #6366f1; border-radius:12px; padding:15px 24px; box-shadow:0 2px 8px rgba(99,102,241,.1);">
+        <div style="font-size:2rem; font-weight:900; color:#6366f1; flex-shrink:0;">3</div>
+        <div><div style="font-weight:800; color:#1e1b4b; font-size:1rem;">Fargate は Task だけ / ECS on EC2 は 2 段スケール</div><div style="font-size:.8rem; color:#6b7280; margin-top:3px;">違いは「ホストを誰が管理するか」。デプロイは Revision を上げて Service に反映するだけ。</div></div>
+      </div>
+    </div>
+    <div class="punch" style="max-width:700px; margin:20px auto 0;">困ったら <b>Service → Events → Task → Logs → Target Group</b> の順で確認する（詳細は Appendix）。</div>
+  </div>
+</div>
+
+<!-- 17 Appendix: 障害調査 Q&A -->
+<div class="slide" id="slide-16">
+  <div class="slide-bar"></div>
+  <div class="slide-body">
+    <span class="tag" style="background:#1e1b4b; color:#c7d2fe; border-color:#312e81;">Appendix</span>
+    <h2 class="slide-title">よくある確認 ── Q&amp;A</h2>
+    <p class="slide-sub">運用で詰まったとき「どこを見るか」。EC2 時代の確認手順と対応している</p>
+    <div style="display:flex; flex-direction:column; gap:7px; flex:1; justify-content:center;">
+      <div style="border:1.5px solid #e5e7eb; border-radius:10px; padding:7px 16px;"><div style="font-size:.83rem; font-weight:800; color:#4f46e5;">Q. 今いくつ Task が動いている？</div><div style="font-size:.78rem; color:#374151; margin-top:1px;">A. <b>ECS Service の Running / Desired</b> を見る。差があり Pending が残れば起動できていない。<span style="color:#9ca3af;">（≒ ASG の Desired / InService）</span></div></div>
+      <div style="border:1.5px solid #e5e7eb; border-radius:10px; padding:7px 16px; background:#fafaff;"><div style="font-size:.83rem; font-weight:800; color:#4f46e5;">Q. なぜ Task が起動しない / すぐ落ちる？</div><div style="font-size:.78rem; color:#374151; margin-top:1px;">A. <b>Service Events</b> と <b>Task の停止理由</b> を見る。イメージ取得失敗・ヘルスチェック失敗・容量不足などが出る。</div></div>
+      <div style="border:1.5px solid #e5e7eb; border-radius:10px; padding:7px 16px;"><div style="font-size:.83rem; font-weight:800; color:#4f46e5;">Q. アプリのログはどこ？</div><div style="font-size:.78rem; color:#374151; margin-top:1px;">A. <b>CloudWatch Logs / New Relic Logs</b>（firelens 経由）。nginx・app・サイドカーそれぞれ確認できる。</div></div>
+      <div style="border:1.5px solid #e5e7eb; border-radius:10px; padding:7px 16px; background:#fafaff;"><div style="font-size:.83rem; font-weight:800; color:#4f46e5;">Q. 通信が来ない / 502・503 が出る</div><div style="font-size:.78rem; color:#374151; margin-top:1px;">A. <b>ALB Target Group の Healthy / Unhealthy</b> とヘルスチェックパスを確認。Unhealthy なら nginx/app の起動を疑う。</div></div>
+      <div style="border:1.5px solid #e5e7eb; border-radius:10px; padding:7px 16px;"><div style="font-size:.83rem; font-weight:800; color:#4f46e5;">Q. どの版が動いている？</div><div style="font-size:.78rem; color:#374151; margin-top:1px;">A. <b>Service が参照している Task Definition の Revision</b> を見る。<span style="color:#9ca3af;">（≒ Launch Template の Version）</span></div></div>
+      <div style="border:1.5px solid #c7d2fe; border-radius:10px; padding:7px 16px; background:#eef2ff;"><div style="font-size:.83rem; font-weight:800; color:#4f46e5;">Q. サイドカー（FireLens など）のバージョンを変えたいときは？</div><div style="font-size:.78rem; color:#374151; margin-top:1px;">A. <b>Task Definition の該当コンテナの image タグを上げて新 Revision を作り、Service を更新</b>する。＝通常デプロイと同じで、app だけでなく <b>Task ごとまるごと入れ替わる</b>（サイドカー単体では差し替えない）。</div></div>
+    </div>
+    <div class="punch punch-warn">迷ったら <b>まず Service。Pending で止まっていないか</b>を最初に見る。原因の多くは Service Events に出ている。</div>
+  </div>
+</div>
+
+<!-- NEW Appendix: build & push -->
+<div class="slide" id="slide-17">
+  <div class="slide-bar"></div>
+  <div class="slide-body">
+    <span class="tag" style="background:#1e1b4b; color:#c7d2fe; border-color:#312e81;">Appendix / イメージの build &amp; push</span>
+    <h2 class="slide-title">ローカル PC で build → ECR に push</h2>
+    <p class="slide-sub">手元でイメージを作り ECR に上げる。ECS はそこから pull して Task を起動する</p>
+
+    <!-- 図 -->
+    <div style="display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:14px;">
+      <div style="border:1.5px solid #cbd5e1; background:#f1f5f9; border-radius:11px; padding:11px 16px; text-align:center;">
+        <div style="font-size:.82rem; font-weight:800; color:#334155;">ローカル PC</div>
+        <div style="display:flex; gap:6px; margin-top:6px;">
+          <span style="background:#fff; border:1px solid #cbd5e1; border-radius:6px; padding:4px 9px; font-size:.7rem; color:#475569;">docker build</span>
+          <span style="background:#fff; border:1px solid #cbd5e1; border-radius:6px; padding:4px 9px; font-size:.7rem; color:#475569;">docker push</span>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; align-items:center;"><div style="font-size:.6rem; color:#94a3b8;">push</div><span style="font-size:22px; color:#a5b4fc;">&rarr;</span></div>
+      <div style="border:1.5px solid #fcd34d; background:#fffbeb; border-radius:11px; padding:11px 18px; text-align:center;">
+        <div style="font-size:.86rem; font-weight:800; color:#92400e;">ECR</div>
+        <div style="font-size:.66rem; color:#b45309;">イメージレジストリ</div>
+      </div>
+      <div style="display:flex; flex-direction:column; align-items:center;"><div style="font-size:.6rem; color:#94a3b8;">pull</div><span style="font-size:22px; color:#a5b4fc;">&rarr;</span></div>
+      <div style="border:1.5px solid #6366f1; background:#fafaff; border-radius:11px; padding:11px 16px; text-align:center;">
+        <div style="font-size:.82rem; font-weight:800; color:#3730a3;">ECS</div>
+        <div style="font-size:.66rem; color:#6366f1;">pull して Task 起動</div>
+      </div>
+    </div>
+
+    <!-- コマンド -->
+    <div style="background:#1e1b4b; color:#e0e7ff; border-radius:11px; padding:14px 20px; font-family:ui-monospace, Menlo, Consolas, monospace; font-size:.8rem; line-height:1.75; white-space:pre; overflow:auto; flex:1;"><span style="color:#94a3b8;"># 1) ECR にログイン</span>
+aws ecr get-login-password --region ap-northeast-1 \
+  | docker login --username AWS --password-stdin &lt;ACCOUNT&gt;.dkr.ecr.ap-northeast-1.amazonaws.com
+
+<span style="color:#94a3b8;"># 2) build &rarr; tag &rarr; push</span>
+docker build -t myapp:1.2 .
+docker tag  myapp:1.2 &lt;ACCOUNT&gt;.dkr.ecr.ap-northeast-1.amazonaws.com/myapp:1.2
+docker push           &lt;ACCOUNT&gt;.dkr.ecr.ap-northeast-1.amazonaws.com/myapp:1.2</div>
+
+    <div class="punch">手元で <b>build &rarr; tag &rarr; ECR に push</b>。あとは Task Definition がこのイメージタグを指し、Service 更新で反映される。</div>
+  </div>
+</div>
+<!-- 13 スケールの段数 -->
+<div class="slide" id="slide-18">
+  <div class="slide-bar"></div>
+  <div class="slide-body">
+    <span class="tag" style="background:#1e1b4b; color:#c7d2fe; border-color:#312e81;">Appendix / スケール</span>
+    <h2 class="slide-title">スケールの段数が違う</h2>
+    <p class="slide-sub">Fargate は Task だけ。ECS on EC2 は Task + EC2 容量の 2 段階</p>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:18px; flex:1;">
+      <div style="border:2px solid #6366f1; border-radius:12px; padding:14px 18px; background:#fafaff; display:flex; flex-direction:column; gap:6px;">
+        <div style="font-weight:900; color:#3730a3; font-size:1rem;">Fargate ─ 1 段</div>
+        <div style="background:#eef2ff; border-radius:8px; padding:9px; text-align:center; font-weight:700; color:#4f46e5; font-size:.85rem;">ECS Service Auto Scaling</div>
+        <div class="arr-down" style="color:#818cf8;">▼ Desired Count を増やす</div>
+        <div style="display:flex; gap:6px; justify-content:center;">
+          <div class="box box-ecs" style="width:54px; height:46px; font-size:.72rem;">Task</div><div class="box box-ecs" style="width:54px; height:46px; font-size:.72rem;">Task</div><div class="box box-ecs" style="width:54px; height:46px; font-size:.72rem; border-style:dashed; opacity:.5;">+Task</div>
+        </div>
+        <div style="margin-top:auto; font-size:.72rem; color:#818cf8; background:#eef2ff; border-radius:6px; padding:7px 10px;">ホストは AWS 管理 → <b>Task 数だけ気にすればいい</b></div>
+      </div>
+      <div style="border:1.5px solid #e2e8f0; border-radius:12px; padding:14px 18px; display:flex; flex-direction:column; gap:5px;">
+        <div style="font-weight:900; color:#334155; font-size:1rem;">ECS on EC2 ─ 2 段</div>
+        <div style="background:#eef2ff; border-radius:8px; padding:7px 10px; text-align:center; font-weight:700; color:#4f46e5; font-size:.8rem;">① Service Auto Scaling<br><span style="font-size:.68rem; font-weight:400;">Task 数を増やす</span></div>
+        <div class="arr-down" style="color:#94a3b8;">▼</div>
+        <div style="border:1.5px dashed #94a3b8; border-radius:8px; padding:7px;">
+          <div style="font-size:.68rem; color:#94a3b8; margin-bottom:4px; text-align:center;">EC2 の上に Task を配置</div>
+          <div style="display:flex; gap:4px; justify-content:center;">
+            <div class="box box-ec2" style="width:54px; height:38px; font-size:.66rem; flex-direction:column; gap:2px; padding:3px;"><span style="font-size:.58rem;">EC2</span><div class="box box-ecs" style="width:38px; height:16px; font-size:.54rem; border-width:1px;">Task</div></div>
+            <div class="box box-ec2" style="width:54px; height:38px; font-size:.66rem; flex-direction:column; gap:2px; padding:3px;"><span style="font-size:.58rem;">EC2</span><div style="width:38px; height:16px; border:1px dashed #a5b4fc; border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:.54rem; color:#818cf8;">空き？</div></div>
+          </div>
+        </div>
+        <div class="arr-down" style="color:#f59e0b;">▼ EC2 の空きがなければ…</div>
+        <div style="background:#fffbeb; border-radius:8px; padding:7px 10px; text-align:center; font-weight:700; color:#92400e; font-size:.8rem;">② EC2 Auto Scaling / Capacity Provider<br><span style="font-size:.68rem; font-weight:400;">EC2 自体を追加する</span></div>
+      </div>
+    </div>
+    <div class="punch punch-warn">ECS on EC2 は <b>「Task を増やしたいのに EC2 の空きがなくて置けない」</b>が起きうる。Capacity Provider を使うと ECS が EC2 のスケールも管理できる。</div>
+  </div>
+</div>
+
+<div id="page-counter">1 / 18</div>
+
+<script>
+(function() {
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const counter = document.getElementById('page-counter');
+  const total = slides.length;
+  let current = 0;
+  function updateCounter() { counter.textContent = (current + 1) + ' / ' + total; }
+  function scrollToSlide(idx) { if (idx < 0 || idx >= total) return; current = idx; slides[idx].scrollIntoView({ behavior:'smooth', block:'center' }); updateCounter(); }
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.intersectionRatio >= 0.5) { current = slides.indexOf(e.target); updateCounter(); } });
+  }, { threshold: 0.5 });
+  slides.forEach(s => observer.observe(s));
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); scrollToSlide(current + 1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); scrollToSlide(current - 1); }
+  });
+  updateCounter();
+})();
+</script>
+</body>
+</html>
