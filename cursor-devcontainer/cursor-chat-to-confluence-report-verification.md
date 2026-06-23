@@ -132,24 +132,39 @@ ls -l /host-cursor/User/globalStorage/state.vscdb
 
 ---
 
-## Step 3: エクスポーター（既存OSS）が動くか
+## Step 3: エクスポート手段（拡張優先 → OSS → 自前の順で確認）
 
-自前で SQLite を読まず既存ツールに乗れるか確認する。
+> ⚠ **公式の「Shared transcripts」はクラウド共有（チーム/公開リンク）で会社情報が外部に出るため使わない。**
+> ローカルで `state.vscdb` を読んで Markdown 化する手段だけを採用する（会社PC内完結）。
+> **前提メモ**: 会社PCで Cursor 公式 DevContainer 拡張が入れられている＝拡張インストールは通る環境。
+> よって Open VSX 拡張も入る見込みが高い（ただし「公式 allowlist 限定」運用の可能性は残るので確認する）。
 
-候補:
-- `iksnae/cursor-session`（IDE デスクトップ + CLI 両対応のエクスポータ）
-- `S2thend/cursor-history`
+### 3-A【最優先】Open VSX 拡張で出せるか
 
-```bash
-# README に従ってインストール（言語は要確認: npm or pip）
-# git clone https://github.com/iksnae/cursor-session && cd cursor-session
-# 依存導入後、--help が出るか / 1セッション export できるか
-```
+CursorはOpen VSXを使う（VS Code Marketplaceは標準で不可）。**Open VSX掲載＝Cursorにそのまま入る**。
 
-- [ ] インストールできた（npm/pip が会社PCで通るか）
-- [ ] 当日会話を 1 件 export できた（出力形式: JSON / Markdown を控える）
+- 第一候補: **Cursor Chat Bulk Export**（Open VSX, `AnasAbbasCode.cursor-chat-bulk-export`）
+  workspaceのチャットをメタ付きMarkdownで**ローカル**出力。
+- 予備: **Cursor Chat Transfer**（Open VSX, `ibrahim317.cursor-chat-transfer`）
 
-> 動かない/入れられない場合は Step1 の Python ワンライナーを土台に自前抽出する。
+確認:
+- [ ] 拡張パネル（Open VSX）から `Cursor Chat Bulk Export` を検索・インストールできるか
+- [ ] 当日チャットを **ローカルのMarkdownファイル**に出力できたか（外部に出ていないか）
+- [ ] 出力に日付・workspace・本文が含まれるか（日報の材料になるか）
+
+### 3-B 入らない場合: VS Code Marketplace 拡張を VSIX 手動
+
+`CursorChat Downloader` / `Cursor Chat Exporter` / `Cursor Chat Viewer` は VS Code MP 配布。
+VSIX を落として手動インストールできるか（ポリシー次第）。**クラウド同期型(SpecStory/WayLog)は外部送信なので避ける**。
+
+- [ ] VSIX 手動インストールが許可されているか
+
+### 3-C それも不可: OSS CLI / 自前抽出
+
+- `iksnae/cursor-session`（IDE+CLI両対応エクスポータ）/ `S2thend/cursor-history`
+- または Step1 の Python ワンライナーを土台に自前抽出（sqlite3 標準のみ・pip不要）
+
+- [ ] OSS が入る/動く、または自前抽出でMarkdown化できる
 
 ---
 
@@ -167,12 +182,12 @@ ls -l /host-cursor/User/globalStorage/state.vscdb
 
 ## 判定マトリクス（持ち帰って方式を決める）
 
-| Step1 DB読める | Step2 実行可 | Step3 export | → 方式 |
+| Step3-A 拡張で出せる | Step1 DB読める | Step2 実行可 | → 方式 |
 |---|---|---|---|
-| Yes | Yes | Yes | ★本命: export → 日報 → Confluence。会社PC内完結・最小実装 |
-| Yes | Yes | No | 自前抽出（Python sqlite3）で同パイプライン。スキーマは Step1 で控える |
-| Yes | No | - | ホスト側実行経路を探す（管理者相談）。不可なら下へ |
-| No | - | - | ▼フォールバック: **CLI 運用**へ転換（業務会話を `cursor-agent` CLI で行い、コンテナ内 `~/.cursor/chats/` を日報ソースに。`devcontainer.json` で `~/.cursor` を named volume 永続化） |
+| **Yes（Open VSX拡張）** | - | - | ★★最楽: 拡張でMarkdown出力 → 日報整形 → Confluence。SQLite を自前で読む必要なし |
+| No | Yes | Yes | 本命: 自前抽出（Python sqlite3）→ 日報 → Confluence。スキーマは Step1 で控える |
+| No | Yes | No | ホスト側実行経路を探す（管理者相談）。不可なら下へ |
+| No | No | - | ▼フォールバック: **CLI 運用**へ転換（業務会話を `cursor-agent` CLI で行い、コンテナ内 `~/.cursor/chats/` を日報ソースに。`devcontainer.json` で `~/.cursor` を named volume 永続化） |
 
 ---
 
@@ -180,15 +195,19 @@ ls -l /host-cursor/User/globalStorage/state.vscdb
 
 ```text
 OS:
+【拡張ルート（最優先）】
+Open VSX 拡張インストール: 可 / 不可（公式allowlist限定か？）
+Cursor Chat Bulk Export: 入った / 入らない
+ローカルMarkdown出力: できた / できない（出力形式・場所: ___）
+【自前ルート（拡張不可の場合）】
 state.vscdb パス: あり / なし
 cursorDiskKV テーブル: あり / なし
 キー形式: （例 bubbleId:<id>:<id> ）
 当日会話 件数: bubble=__ / composer=__
-日付フィールド名:
-本文フィールド名:
+日付フィールド名: / 本文フィールド名:
 コンテナから mount: 可 / 不可
 ホスト直 python: 可 / 不可
-cursor-session 等 export: 動く / 動かない（出力形式: ___）
+【投稿先】
 Confluence 疎通: spaces OK/NG, page OK/NG, comment dry-run OK/NG, --save OK/NG
 → 採用方式（判定マトリクスより）:
 ```
