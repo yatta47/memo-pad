@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI価値ポジショニングマップ（社内版）</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --line:#2a2f3a; --ink:#e6e9ef; --sub:#9aa3b2;
+    --accent:#6ea8fe; --cool:#5ad1b3; --warm:#ffb454; --hot:#ff6b6b; --gold:#ffd166;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,system-ui,sans-serif;
+    line-height:1.6;padding:32px 20px}
+  .wrap{max-width:900px;margin:0 auto}
+  h1{font-size:24px;margin:0 0 4px}
+  .lead{color:var(--sub);margin:0 0 20px;font-size:14px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px}
+  svg{width:100%;height:auto;display:block}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:14px;font-size:13px;color:var(--sub)}
+  .legend span{display:inline-flex;align-items:center;gap:7px}
+  .sw{width:14px;height:14px;border-radius:3px;display:inline-block}
+  .sw-cm{background:rgba(255,107,107,.18);border:1px solid var(--hot)}
+  .sw-sweet{background:rgba(90,209,179,.18);border:1px solid var(--cool)}
+  .sw-apex{background:rgba(255,209,102,.20);border:1px solid var(--gold)}
+  .sw-dot{width:12px;height:12px;border-radius:50%;background:var(--accent)}
+  h2{font-size:16px;margin:26px 0 8px;padding-left:9px;border-left:4px solid var(--accent)}
+  .note{font-size:13.5px}
+  .note b{color:var(--cool)}
+  .small{font-size:12px;color:var(--sub)}
+  pre{background:#11141b;border:1px solid var(--line);border-radius:8px;padding:12px 14px;
+    font-size:13px;color:var(--ink);overflow:auto}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>AI価値ポジショニングマップ（社内版）</h1>
+  <p class="lead">一従業員がAIで社内でどう振る舞えるか。射程（自分↔全社・事業）× 向き（内向き↔外向き）の2軸。（2026-06-25）</p>
+
+  <div class="panel">
+    <svg viewBox="0 0 800 630" role="img" aria-label="社内版ポジショニングマップ">
+      <defs>
+        <marker id="arrow" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L7,3 L0,6 Z" fill="#cdd3de"/>
+        </marker>
+        <marker id="arrowGold" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L7,3 L0,6 Z" fill="#ffd166"/>
+        </marker>
+      </defs>
+
+      <!-- quadrant fills: value rises toward upper-right -->
+      <rect x="70" y="310" width="330" height="255" fill="#ff6b6b" opacity="0.07"/>  <!-- LL 時短 混雑 -->
+      <rect x="70" y="55"  width="330" height="255" fill="#5ad1b3" opacity="0.08"/>  <!-- UL 成果 狙い目 -->
+      <rect x="400" y="310" width="330" height="255" fill="#5ad1b3" opacity="0.08"/> <!-- LR 仕組み 狙い目 -->
+      <rect x="400" y="55"  width="330" height="255" fill="#ffd166" opacity="0.10"/> <!-- UR 変革 最希少 -->
+
+      <!-- archetype titles + badges -->
+      <text x="86" y="80" fill="#7ef0c7" font-size="12" font-weight="600">狙い目</text>
+      <text x="86" y="100" fill="#e6e9ef" font-size="15" font-weight="700">成果を出す人</text>
+      <text x="86" y="118" fill="#9aa3b2" font-size="12">企画・分析・提案の質と量</text>
+
+      <text x="714" y="80" fill="#ffd166" font-size="12" font-weight="600" text-anchor="end">★ 最希少・最高評価</text>
+      <text x="714" y="100" fill="#e6e9ef" font-size="15" font-weight="700" text-anchor="end">変革を起こす人</text>
+      <text x="714" y="118" fill="#9aa3b2" font-size="12" text-anchor="end">AIを組織に浸透させ事業価値</text>
+
+      <text x="86" y="548" fill="#ffb4b4" font-size="12" font-weight="600">混雑（差がつかない）</text>
+      <text x="86" y="528" fill="#9aa3b2" font-size="12">自分の作業をAIで速く</text>
+      <text x="86" y="510" fill="#e6e9ef" font-size="15" font-weight="700">時短する人</text>
+
+      <text x="714" y="548" fill="#7ef0c7" font-size="12" font-weight="600" text-anchor="end">狙い目</text>
+      <text x="714" y="528" fill="#9aa3b2" font-size="12" text-anchor="end">チーム/全社の業務を自動化・標準化</text>
+      <text x="714" y="510" fill="#e6e9ef" font-size="15" font-weight="700" text-anchor="end">仕組みを作る人</text>
+
+      <!-- diagonal value arrow -->
+      <line x1="150" y1="500" x2="650" y2="130" stroke="#ffd166" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arrowGold)" opacity="0.7"/>
+      <text x="405" y="300" fill="#ffd166" font-size="11" opacity="0.85" transform="rotate(-36 405 300)">価値・希少性が高まる →</text>
+
+      <!-- axes -->
+      <line x1="60" y1="310" x2="740" y2="310" stroke="#cdd3de" stroke-width="1.5" marker-end="url(#arrow)"/>
+      <line x1="400" y1="575" x2="400" y2="48" stroke="#cdd3de" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+      <!-- axis labels -->
+      <text x="56" y="300" fill="#e6e9ef" font-size="14" font-weight="600" text-anchor="end">自分</text>
+      <text x="744" y="300" fill="#e6e9ef" font-size="14" font-weight="600" text-anchor="end">全社・事業</text>
+      <text x="400" y="40" fill="#e6e9ef" font-size="14" font-weight="600" text-anchor="middle">外向き（攻め・価値創出）</text>
+      <text x="400" y="600" fill="#e6e9ef" font-size="14" font-weight="600" text-anchor="middle">内向き（守り・効率化）</text>
+      <text x="470" y="328" fill="#9aa3b2" font-size="11">チーム → 部門 → 全社（射程）→</text>
+
+      <!-- behavior dots -->
+      <g>
+        <!-- UL 成果 -->
+        <circle cx="180" cy="165" r="6" fill="#6ea8fe"/>
+        <text x="193" y="169" fill="#cdd3de" font-size="12">提案資料の質を上げる</text>
+        <circle cx="250" cy="230" r="6" fill="#6ea8fe"/>
+        <text x="263" y="234" fill="#cdd3de" font-size="12">分析・調査を深掘り</text>
+
+        <!-- UR 変革 -->
+        <circle cx="560" cy="165" r="6" fill="#6ea8fe"/>
+        <text x="546" y="169" fill="#cdd3de" font-size="12" text-anchor="end">AI活用を全社展開</text>
+        <circle cx="630" cy="235" r="6" fill="#6ea8fe"/>
+        <text x="616" y="239" fill="#cdd3de" font-size="12" text-anchor="end">新規事業・サービスにAI組込</text>
+
+        <!-- LL 時短 -->
+        <circle cx="175" cy="395" r="6" fill="#6ea8fe"/>
+        <text x="188" y="399" fill="#cdd3de" font-size="12">議事録要約・メール下書き</text>
+        <circle cx="255" cy="455" r="6" fill="#6ea8fe"/>
+        <text x="268" y="459" fill="#cdd3de" font-size="12">コード補完・調べ物</text>
+
+        <!-- LR 仕組み -->
+        <circle cx="560" cy="395" r="6" fill="#6ea8fe"/>
+        <text x="546" y="399" fill="#cdd3de" font-size="12" text-anchor="end">定型業務の自動化</text>
+        <circle cx="615" cy="455" r="6" fill="#6ea8fe"/>
+        <text x="601" y="459" fill="#cdd3de" font-size="12" text-anchor="end">ナレッジ基盤・運用の仕組み化</text>
+      </g>
+    </svg>
+
+    <div class="legend">
+      <span><span class="sw sw-cm"></span>混雑（コモディティ）</span>
+      <span><span class="sw sw-sweet"></span>狙い目</span>
+      <span><span class="sw sw-apex"></span>最希少・最高評価</span>
+      <span><span class="sw sw-dot"></span>代表的なふるまい</span>
+    </div>
+  </div>
+
+  <h2>3つの貢献に集約すると</h2>
+  <pre>① 自分が速くなる    … 自己効率化（混雑・コモディティ）
+② 周りを速くする    … 仕組み化・標準化（狙い目）
+③ 事業を伸ばす      … 価値創出・組織変革（最希少）</pre>
+
+  <h2>社内ならではの構造（市場版との違い）</h2>
+  <p class="note">
+    市場では価値＝売上・顧客だが、<b>社内では価値＝評価・影響力・代替されにくさ（キャリア資本）</b>。<br>
+    ① <b>「AIを使える」こと自体は価値にならない</b>。利用はすぐコモディティ化する。"使える"ではなく<b>"何を生んだか・何を仕組みにしたか"で差がつく</b>。左下に留まると「AIで楽してる人」に見られ評価が伸びない罠すらある。<br>
+    ② <b>横軸（射程）を右へ動かせる人が圧倒的に少ない</b>。「自分が速くなる」は皆やるが、「チーム・全社を仕組みで変える／組織を動かす」には技術力だけでなく<b>推進力・巻き込み</b>が要る。だから右側が空いている＝狙い目。
+  </p>
+  <p class="small">※象限の名前はふるまいの型。同じ人でも場面で複数象限を行き来する。固定的なレッテルではなく「いま自分はどこで価値を出しているか」のレンズとして使う。</p>
+</div>
+</body>
+</html>

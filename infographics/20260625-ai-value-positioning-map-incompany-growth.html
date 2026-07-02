@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI価値ポジショニングマップ（社内版・成長レイヤー）</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --line:#2a2f3a; --ink:#e6e9ef; --sub:#9aa3b2;
+    --accent:#6ea8fe; --cool:#5ad1b3; --warm:#ffb454; --hot:#ff6b6b; --gold:#ffd166;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,system-ui,sans-serif;
+    line-height:1.6;padding:32px 20px}
+  .wrap{max-width:900px;margin:0 auto}
+  h1{font-size:23px;margin:0 0 4px}
+  .lead{color:var(--sub);margin:0 0 20px;font-size:14px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px}
+  svg{width:100%;height:auto;display:block}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;font-size:13px;color:var(--sub)}
+  .legend span{display:inline-flex;align-items:center;gap:7px}
+  .sw{width:14px;height:14px;border-radius:3px;display:inline-block}
+  .sw-base{background:rgba(110,168,254,.12);border:1px dashed var(--cool)}
+  .sw-sweet{background:rgba(90,209,179,.18);border:1px solid var(--cool)}
+  .sw-apex{background:rgba(255,209,102,.20);border:1px solid var(--gold)}
+  .ln-supply{width:18px;border-top:2px dashed var(--cool);display:inline-block}
+  .ln-grow{width:18px;border-top:2px solid var(--gold);display:inline-block}
+  h2{font-size:16px;margin:26px 0 8px;padding-left:9px;border-left:4px solid var(--accent)}
+  .note{font-size:13.5px}
+  .note b{color:var(--cool)}
+  .small{font-size:12px;color:var(--sub)}
+  table{border-collapse:collapse;width:100%;margin-top:6px}
+  th,td{border:1px solid var(--line);padding:8px 11px;text-align:left;font-size:13px;vertical-align:top}
+  th{background:#1f2530;color:var(--sub)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>AI価値ポジショニングマップ（社内版・成長レイヤー）</h1>
+  <p class="lead">同じ2軸に「育つ順番」を重ねた版。左下は低い場所ではなく、肌感覚が溜まる<b style="color:#5ad1b3">土台（BASE）</b>。（2026-06-25）</p>
+
+  <div class="panel">
+    <svg viewBox="0 0 800 630" role="img" aria-label="社内版・成長レイヤー">
+      <defs>
+        <marker id="arrow" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L7,3 L0,6 Z" fill="#cdd3de"/>
+        </marker>
+        <marker id="arrowGold" markerWidth="11" markerHeight="11" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L7,3 L0,6 Z" fill="#ffd166"/>
+        </marker>
+        <marker id="arrowCool" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L6,3 L0,6 Z" fill="#5ad1b3"/>
+        </marker>
+      </defs>
+
+      <!-- quadrant fills -->
+      <rect x="70" y="310" width="330" height="255" fill="#6ea8fe" opacity="0.07"/>  <!-- LL BASE -->
+      <rect x="70" y="310" width="330" height="255" fill="none" stroke="#5ad1b3" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.8"/>
+      <rect x="70" y="55"  width="330" height="255" fill="#5ad1b3" opacity="0.08"/>  <!-- UL -->
+      <rect x="400" y="310" width="330" height="255" fill="#5ad1b3" opacity="0.08"/> <!-- LR -->
+      <rect x="400" y="55"  width="330" height="255" fill="#ffd166" opacity="0.10"/> <!-- UR -->
+
+      <!-- supply lines from BASE -->
+      <line x1="235" y1="450" x2="235" y2="180" stroke="#5ad1b3" stroke-width="1.6" stroke-dasharray="4 4" opacity="0.6" marker-end="url(#arrowCool)"/>
+      <line x1="270" y1="478" x2="540" y2="478" stroke="#5ad1b3" stroke-width="1.6" stroke-dasharray="4 4" opacity="0.6" marker-end="url(#arrowCool)"/>
+      <!-- growth path (BASE -> 右上) -->
+      <line x1="275" y1="450" x2="645" y2="140" stroke="#ffd166" stroke-width="2.2" marker-end="url(#arrowGold)" opacity="0.85"/>
+      <text x="430" y="300" fill="#ffd166" font-size="12" font-weight="600" opacity="0.9" transform="rotate(-36 430 300)">成長の道（基礎 → 応用）</text>
+
+      <!-- archetype titles -->
+      <text x="86" y="80" fill="#7ef0c7" font-size="12" font-weight="600">狙い目</text>
+      <text x="86" y="100" fill="#e6e9ef" font-size="15" font-weight="700">成果を出す人</text>
+
+      <text x="714" y="80" fill="#ffd166" font-size="12" font-weight="600" text-anchor="end">★ 最希少・最高評価</text>
+      <text x="714" y="100" fill="#e6e9ef" font-size="15" font-weight="700" text-anchor="end">変革を起こす人</text>
+
+      <text x="714" y="548" fill="#7ef0c7" font-size="12" font-weight="600" text-anchor="end">狙い目</text>
+      <text x="714" y="528" fill="#e6e9ef" font-size="15" font-weight="700" text-anchor="end">仕組みを作る人</text>
+
+      <!-- BASE label (LL) -->
+      <text x="86" y="498" fill="#5ad1b3" font-size="13" font-weight="700">BASE｜肌感覚の蓄積</text>
+      <text x="86" y="518" fill="#e6e9ef" font-size="14" font-weight="700">時短する人</text>
+      <text x="86" y="536" fill="#9aa3b2" font-size="12">自分の作業をAIで速く（低リスクで試せる）</text>
+      <text x="86" y="555" fill="#ffb4b4" font-size="11">※居続ければ混雑／通過すれば土台</text>
+
+      <!-- axes -->
+      <line x1="60" y1="310" x2="740" y2="310" stroke="#cdd3de" stroke-width="1.5" marker-end="url(#arrow)"/>
+      <line x1="400" y1="575" x2="400" y2="48" stroke="#cdd3de" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+      <!-- axis labels -->
+      <text x="56" y="300" fill="#e6e9ef" font-size="14" font-weight="600" text-anchor="end">自分</text>
+      <text x="744" y="300" fill="#e6e9ef" font-size="14" font-weight="600" text-anchor="end">全社・事業</text>
+      <text x="400" y="40" fill="#e6e9ef" font-size="14" font-weight="600" text-anchor="middle">外向き（攻め・価値創出）</text>
+      <text x="400" y="600" fill="#e6e9ef" font-size="14" font-weight="600" text-anchor="middle">内向き（守り・効率化）</text>
+
+      <!-- supply note -->
+      <text x="250" y="250" fill="#7ef0c7" font-size="11" opacity="0.85">土台が供給</text>
+      <text x="350" y="495" fill="#7ef0c7" font-size="11" opacity="0.85">土台が供給</text>
+    </svg>
+
+    <div class="legend">
+      <span><span class="sw sw-base"></span>BASE（肌感覚の土台）</span>
+      <span><span class="sw sw-sweet"></span>狙い目</span>
+      <span><span class="sw sw-apex"></span>最希少</span>
+      <span><span class="ln-supply"></span>土台が供給</span>
+      <span><span class="ln-grow"></span>成長の道</span>
+    </div>
+  </div>
+
+  <h2>左下＝BASE：ここでしか溜まらないもの</h2>
+  <p class="note">
+    左下（自分の作業をAIで時短）でしか身につかないのが <b>「AIの肌感覚」＝暗黙知</b>。<br>
+    ・AIが何を得意とし、何を平気で間違えるか／・どう指示すれば意図どおり動くか／・どこから先は人がやるべきか。<br>
+    これは座学で入らない。低リスクな自分の作業で何度も触って初めて身体に入る。<b>上・右の象限は全部この肌感覚の上に乗る</b>。
+  </p>
+
+  <h2>SREの言葉で言うと</h2>
+  <p class="note">
+    <b>「toil を知らない人は自動化を設計できない」</b>と同じ構造。手で痛みを味わった人だけが「どこを仕組みにすべきか」を正しく選べる。<br>
+    左下＝toil を手で回す期間。ここを飛ばした自動化（右下）は、たいてい<b>間違ったものを自動化する</b>。
+  </p>
+
+  <h2>左下の"扱い方"に2つの罠</h2>
+  <table>
+    <tr><th>罠</th><th>中身</th></tr>
+    <tr><td>左下を飛ばす</td><td>基礎なしで上・右へ → ふるまいが浅い／設計を誤る</td></tr>
+    <tr><td>左下に居続ける</td><td>土台のまま永住 → コモディティ化</td></tr>
+  </table>
+  <p class="note" style="margin-top:10px">
+    正解は <b>「通過点であり、常駐ベースキャンプ」</b>。一度通って終わりではない。<br>
+    AIは進化が速いので、上の象限で戦いながらも<b>左下に片足を残し続ける</b>（新モデル・新機能を自分の手で触り、肌感覚を更新する）。左下を完全に離れた瞬間、肌感覚が陳腐化し、上での判断もズレ始める。
+  </p>
+  <p class="small">※厳密には「左下→必ず順番」ではなく、他スキルで右下・左上にショートカット入場も可能。ただしその場合もどこかで肌感覚を補わないと打ち手が浅くなる。左下は順番として必須というより、質を担保する基礎体力として必須。</p>
+</div>
+</body>
+</html>
