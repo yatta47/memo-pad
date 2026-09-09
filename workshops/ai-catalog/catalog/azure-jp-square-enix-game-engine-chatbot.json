@@ -1,0 +1,25 @@
+{
+  "id": "azure-jp-square-enix-game-engine-chatbot",
+  "title": "ゲームエンジンの質問対応をSlack上のRAGボットで軽減",
+  "department": "ゲーム開発",
+  "who_and_problem": "スクウェア・エニックスのゲームエンジン開発部門では、6,000ページを超えるドキュメントに関する質問が社内の開発者から日々多数寄せられ、担当者の負担が増大していた。一方で質問することに心理的ハードルがあり、困っていても質問しない開発者もいた。",
+  "problem_types": [
+    "問い合わせ・対応の負荷",
+    "情報検索・参照に時間がかかる"
+  ],
+  "ai_and_system": "AIは、ドキュメントを根拠に質問へ回答するチャットボット「ひすいちゃん」と、独自形式のゲームデータを生成するPythonコードの自動生成を担当する（Azure OpenAI Service GPT-4、Azure AI SearchによるRAG）。AIの外側では、Slack連携、イベント処理のAzure Functions、ドキュメントと質問内容を保存するAzure Blob、言語検出・翻訳のAzure AI Translator、機密性の高い質問向けのC#ローカルアプリがある。1対1ではなく多人数チャットで運用し、誤回答を担当者がその場で指摘でき、該当担当者への自動メンションと過去のやり取りからの修正学習を組み込んだ。",
+  "platforms": [
+    "Azure OpenAI",
+    "GPT",
+    "Azure AI Search",
+    "Azure Functions",
+    "Azure Blob Storage",
+    "Azure AI Translator",
+    "Slack"
+  ],
+  "requirements": "データ: 6,000ページ超のゲームエンジンドキュメント、Slackの過去対話ログ、Pythonコードサンプル。基盤: Azure OpenAI Service（GPT-4）、Azure AI Search、Azure Functions、Azure Blob、Azure AI Translator、Slack。運用体制: 多人数チャットでエンジン担当者が回答を監視・訂正する運用。",
+  "confirmed_effects": "3日でリリース。100人以上が利用する状況でAzure OpenAI Serviceの月額使用料は約5万円、周辺サービスを含めても月額10万円未満。定性的には、質問の敷居低下、担当者の負担軽減、新人がチュートリアル代わりに活用、ドキュメント作成者のモチベーション向上が述べられている（数値なし）。",
+  "hypothesized_effects": "プロジェクト横断のデータ統合と学習データの集約による成果向上を検討。Azureを積極的に活用していく予定。",
+  "source_url": "https://www.microsoft.com/ja-jp/customers/story/20976-square-enix-co-ltd-azure-ai-search",
+  "confirmed_at": "2026-09-07"
+}

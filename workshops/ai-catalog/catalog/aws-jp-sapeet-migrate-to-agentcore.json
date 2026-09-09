@@ -1,0 +1,23 @@
+{
+  "id": "aws-jp-sapeet-migrate-to-agentcore",
+  "title": "Difyの環境分析AIをAgentCoreへ2週間で移行",
+  "department": "システム開発",
+  "who_and_problem": "Sapeetの AI Solution事業部が、仰星監査法人向けに提供する生成AI環境分析ツールをDifyで約1年運用してきた。チーム開発・本番運用フェーズに入り、作業者ごとの変更差分の把握が難しくリグレッションが発生する、ワークフローのノード増加で管理が複雑化する、チャット形式にとどまらない専用UIやデバッグのしやすさが求められる、という課題が生じていた。",
+  "problem_types": [
+    "開発・運用の速度と統制"
+  ],
+  "ai_and_system": "AIは、監査業務の環境分析（PEST、5フォース等の観点別分析）をStrands Agents SDKのGraph機能で構成したワークフローとして実行する。AIの外側では、Amazon Bedrock AgentCoreがエージェントをホスティングし、バックエンドとフロントエンドはAmazon ECSで稼働、専用画面で観点別タブ表示を提供する。インフラはAWS CDK L2 Constructで単一プロジェクトから一括デプロイし、Gitベースの差分管理とPRベースのレビューフローを確立した。",
+  "platforms": [
+    "Dify",
+    "Strands Agents",
+    "Amazon Bedrock",
+    "Amazon Bedrock AgentCore",
+    "Amazon ECS",
+    "AWS CDK"
+  ],
+  "requirements": "データ: 記載なし（Dify時代に磨いたワークフロー設計資産を移行）。基盤: Amazon Bedrock、Amazon Bedrock AgentCore（Toolkit含む）、Strands Agents SDK、Amazon ECS、AWS CDK（v2.221.0以降のaws-bedrockagentcore）。運用体制: 1か月の技術検証の後、メイン実装エンジニア1名が集中して移行。結合テストを含め約2か月。",
+  "confirmed_effects": "基盤移行を実質2週間で完了（結合テスト込みで約2か月）。処理時間は移行前と体感でほぼ同等を維持（処理時間の8割以上がLLM推論のため）。バージョン管理とコードレビューをインフラ含めて一元化。",
+  "hypothesized_effects": "将来的にAmazon S3 + AWS Lambda + AgentCore構成への最適化によるコスト効率の改善を見込む。2026年8月以降のアップデートを機に利用者フィードバック収集を進める予定。ノーコードで立ち上げてコードベースへ移行するスキームを他プロジェクトへ横展開する方針。",
+  "source_url": "https://aws.amazon.com/jp/blogs/news/sapeet-migrate-to-agentcore/",
+  "confirmed_at": "2026-09-07"
+}

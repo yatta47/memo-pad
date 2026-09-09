@@ -1,0 +1,10 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+# 当日AIが作る4部品
+.claude/skills/
+.cursor/skills/
+app/
+sync/
+mcp/

@@ -1,0 +1,20 @@
+{
+  "id": "aws-jp-gyosei-audit-generative-ai-dify-87-percent-efficiency-gain",
+  "title": "監査法人の環境分析調査をDifyアプリで87%削減",
+  "department": "監査",
+  "who_and_problem": "仰星監査法人の監査現場の公認会計士は、監査業務における固有リスク要因の洗い出しのため、Webでの情報収集・記事チェック・資料保存・アウトプット作成といった単純ながら時間を要する作業を行っていた。機密性の高いクライアント情報をセキュアに扱い、投資対効果を重視して特定業務に絞り、スピード感を持って検証から実運用へつなげる必要があった。",
+  "problem_types": [
+    "調査・分析・原因究明に時間"
+  ],
+  "ai_and_system": "AIは、Difyで構築したワークフローとAmazon Bedrockのモデルにより、クライアントの情報収集と環境分析を行い、アウトプットを作成する。最終的な監査リスクの判断は人間が行う役割分担。AIの外側では、Amazon WorkSpacesのVDI環境からのみ接続できるインターネット隔離の閉域環境でアプリを提供し、DifyをAWS上にセルフホストしている。",
+  "platforms": [
+    "Dify",
+    "Amazon Bedrock",
+    "Amazon WorkSpaces"
+  ],
+  "requirements": "データ: クライアント企業に関するWeb上の公開情報、監査業務の専門知識（プロンプトに反映）。基盤: Dify（AWS上にセルフホスト）、Amazon Bedrock、Amazon WorkSpaces。運用体制: Sapeetが開発パートナーとして最初の1か月で業務理解とデータ確認を行い、MVP後は週次でアップデート。現場の公認会計士がワークショップとプロンプト作り込みに参加。導入まで5か月。",
+  "confirmed_effects": "当該作業時間を87%削減。投資回収期間の見通しが立った。導入後アンケートでスタッフからパートナーまで職位に関係なく業務効率化の可能性が高いとの評価。",
+  "hypothesized_effects": "情報量の増加による新たな視点でのリスク要因発見と、暗黙知の形式知化への道筋が見えてきたとしている。アプリを通じて組織にナレッジを蓄積し、集合知として監査業務の効率化・品質向上に活用する「ナレッジ循環」の仕組みを構築していく計画。各種SaaSも用いたAI活用の範囲拡大も推進。",
+  "source_url": "https://aws.amazon.com/jp/blogs/news/gyosei-audit-generative-ai-dify-87-percent-efficiency-gain/",
+  "confirmed_at": "2026-09-07"
+}

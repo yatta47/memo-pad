@@ -1,0 +1,21 @@
+{
+  "id": "aws-jp-case-study-mec",
+  "title": "研究部門の情報検索・更新をAIエージェント化",
+  "department": "研究開発",
+  "who_and_problem": "メック株式会社の研究開発部門では、ベテラン社員の高度な検索スキルや情報収集ノウハウが個人に留まり、専門用語と関連技術が複雑に絡む領域で経験年数の浅いメンバーが適切に情報へアクセスしにくかった。日々蓄積される研究データや技術情報も単なる保管に留まり、戦略的な知的資産として活用できていなかった。",
+  "problem_types": [
+    "情報検索・参照に時間がかかる",
+    "属人化・スキル差"
+  ],
+  "ai_and_system": "AIは2つのエージェントを担う。情報検索エージェントは質問文をそのまま使わず専門知識を基に最適な検索クエリを自動生成し、結果が目的に沿わなければ複数回検索する。情報更新エージェントは新規情報の登録時に「どの案件のどんな相談から必要になったか」といったコンテキストを付与し、内容を確認してメタデータを自動生成する。AIの外側では、Strands Agentsで作成したエージェントとRAGツールをAmazon Bedrock AgentCore Runtime上にデプロイし、ベクトルストアにはAmazon S3 Vectorsを用いる。",
+  "platforms": [
+    "Strands Agents",
+    "Amazon Bedrock AgentCore",
+    "Amazon S3 Vectors"
+  ],
+  "requirements": "データ: 研究データ、技術情報、調査結果などの社内知見（コンテキスト・メタデータ付きで蓄積）。基盤: Amazon Bedrock AgentCore Runtime、Strands Agents、Amazon S3 Vectors、AgentCore starter toolkit。運用体制: AWS主催ハッカソンを契機に約3週間で構築し、PoCフェーズとしてスモールスタートで効果検証を進めている。",
+  "confirmed_effects": "",
+  "hypothesized_effects": "情報検索時間の短縮による組織全体の生産性向上、検索エージェントによる経験年数を問わない高品質な情報収集（研究業務レベルの底上げ）、情報更新エージェントによる知的資産の体系的整備と継続的な進化が期待されるとしている。今後より多くの業務での活用を進める方針。",
+  "source_url": "https://aws.amazon.com/jp/blogs/news/case-study-mec/",
+  "confirmed_at": "2026-09-07"
+}

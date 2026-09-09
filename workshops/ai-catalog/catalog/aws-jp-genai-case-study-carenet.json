@@ -1,0 +1,19 @@
+{
+  "id": "aws-jp-genai-case-study-carenet",
+  "title": "医学文献から医師向けニュース記事を大規模自動生成",
+  "department": "編集",
+  "who_and_problem": "医師向け会員制サイト「CareNet.com」（登録医師24万人）を運営するケアネットの編集部門は、年間150万件以上発表される医学文献に対し、人力のニュース作成では1日約10件程度しか提供できず、忙しい医師が最新情報を継続的に取得したいというニーズを満たせていなかった。",
+  "problem_types": [
+    "文書・資料作成の負荷"
+  ],
+  "ai_and_system": "AIは、PubMedのアブストラクト情報からAmazon Bedrock上のClaudeで医学文献を整理・要約し、ニュース記事と解説記事を自動生成する。AIの外側では、独自開発のレコメンデーションAIが医師ごとの関心（診療科・疾患）に合わせて記事を選定し、スマホ対応ブラウザアプリ「CareNet Academia」とメールで配信する。医師が配信記事を評価するフィードバックの仕組みがあり、クロスリージョン推論で大量リクエストを並列処理する。",
+  "platforms": [
+    "Amazon Bedrock",
+    "Claude"
+  ],
+  "requirements": "データ: PubMedの医学文献アブストラクト、医師の関心トピック設定と記事評価、会員情報。基盤: Amazon Bedrock（Claude、クロスリージョン推論）、独自レコメンデーションAI、メール配信基盤。運用体制: 記載なし（ユーザー要望への迅速な機能追加対応を実施）。",
+  "confirmed_effects": "1日あたりの記事生成数が最大5,000件に拡大（従来比約500倍）。CareNet Academiaのユーザー継続率は60%超。",
+  "hypothesized_effects": "医師の情報収集時間の短縮と、より効率的な臨床判断のサポートを効果として挙げている（数値は記載なし）。",
+  "source_url": "https://aws.amazon.com/jp/blogs/news/genai-case-study-carenet/",
+  "confirmed_at": "2026-09-07"
+}

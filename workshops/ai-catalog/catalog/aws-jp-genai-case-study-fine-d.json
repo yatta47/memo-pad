@@ -1,0 +1,22 @@
+{
+  "id": "aws-jp-genai-case-study-fine-d",
+  "title": "建築AIパースの画像から類似商品をレコメンド",
+  "department": "営業",
+  "who_and_problem": "建築CGデジタル素材を提供するファインが運営する建築パース生成サービス「AI PERS」の営業・設計担当者は、施主のイメージは具体化できるものの、実際の商品とのマッチングや検索に時間がかかり、営業や設計の商談に差が出て、顧客の検討の温度感が高いうちに提案できないことがあった。",
+  "problem_types": [
+    "情報検索・参照に時間がかかる"
+  ],
+  "ai_and_system": "AIは、生成されたAIパース画像から切り抜いた床部分をAmazon Titan Multimodal Embeddingsでベクトル化し、販売商品との類似度からおすすめ1〜5位を算出する役割を担う。AIの外側では、施主が選択したプランと部屋イメージ入力からのAIパース生成、検索対象部位（床）の検出、AWS Lambdaでの画像切り抜き、Amazon RDS PostgreSQLでのベクトル検索と結果表示がある。",
+  "platforms": [
+    "Amazon Bedrock",
+    "Amazon SageMaker",
+    "Amazon Titan",
+    "AWS Lambda",
+    "Amazon RDS"
+  ],
+  "requirements": "データ: 生成されたAIパース画像、販売商品の画像ベクトル。基盤: Amazon Bedrock / Amazon SageMaker（Amazon Titan Multimodal Embeddings）、AWS Lambda、Amazon RDS PostgreSQL。運用体制: 開発部がハッカソンイベントAWS DEVCRAFTで設計から1か月半で開発（運用体制の詳細は記載なし）。",
+  "confirmed_effects": "設計から1か月半でレコメンド機能を開発した。業務効果の実測値は記載なし。",
+  "hypothesized_effects": "AIパースのイメージに近い商品を探す時間を75%削減し担当者の工数削減に寄与すること、おすすめ度1〜5位の即時表示による顧客体験の標準化・向上が期待されている。今後はSNS写真などを入力とする機能拡張、パース制作アプリの自動仕様設定、コンテンツ配信サービスの検索機能への組み込みを構想。",
+  "source_url": "https://aws.amazon.com/jp/blogs/news/genai-case-study-fine-d/",
+  "confirmed_at": "2026-09-07"
+}

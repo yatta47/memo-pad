@@ -1,0 +1,25 @@
+{
+  "id": "aws-jp-aws-genai-usecases-nttwest-elgana-rag",
+  "title": "elgana上の営業支援AIボットで商材マニュアル検索",
+  "department": "営業",
+  "who_and_problem": "NTT西日本グループの営業担当者は日々多様な商材を扱い、膨大なマニュアルや資料を参照しているが、情報が複数システムに散在して探すのに時間がかかり属人化していた。商材の問い合わせ窓口である社内ヘルプデスクも対応時間が限られ、すべてに即時対応できなかった。",
+  "problem_types": [
+    "情報検索・参照に時間がかかる",
+    "問い合わせ・対応の負荷"
+  ],
+  "ai_and_system": "AIは、Amazon Bedrock Knowledge Basesによる商材マニュアルのRAG回答生成と、前処理でのPDFからMarkdownへの変換（Claude 3.5 Sonnet）を担当する。AIの外側では、ビジネスチャットelganaのトークルームが入口で、API GatewayとLambdaがメッセージを受信し、回答には根拠のマニュアルページへのリンクを添える。運用者がS3にアップロードしたPDFはLambdaでページ分割・メタデータ生成され、メタデータフィルタリングで商材ごとに検索対象を絞る。回答後に「解決した／していない」アンケートを設け、未解決者はヘルプデスクへ誘導する。",
+  "platforms": [
+    "Amazon Bedrock Knowledge Bases",
+    "Claude",
+    "Amazon OpenSearch Service",
+    "Amazon API Gateway",
+    "AWS Lambda",
+    "Amazon S3",
+    "elgana"
+  ],
+  "requirements": "データ: 商材ごとのサービスマニュアルPDF（ページ分割・Markdown化・カテゴリメタデータ付与）。基盤: Amazon Bedrock Knowledge Bases、Amazon OpenSearch Serverless、Amazon API Gateway、AWS Lambda、Amazon S3、pdfminer、elgana。運用体制: elgana ProjectのAI Lab.チームがトライアル開発を担当し、運用者がS3へマニュアルを投入する。",
+  "confirmed_effects": "",
+  "hypothesized_effects": "数週間のトライアルで利用者から「知りたい情報に素早くアクセスできる」「マニュアルを探す時間が減った」との声があり、業務効率化につながる手応えを得た（数値は記載なし）。機能改善を重ねて実運用を目指す予定。S3にドキュメントを置くだけで商材特化の検索基盤を構築できる仕組みを幅広い業務へ展開し、将来的にはAmazon Bedrock AgentCore等でタスク実行まで支援するAgentic RAGを目指す。",
+  "source_url": "https://aws.amazon.com/jp/blogs/news/aws-genai-usecases-nttwest-elgana-rag/",
+  "confirmed_at": "2026-09-07"
+}

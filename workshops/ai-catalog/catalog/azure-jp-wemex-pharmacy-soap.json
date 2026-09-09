@@ -1,0 +1,19 @@
+{
+  "id": "azure-jp-wemex-pharmacy-soap",
+  "title": "服薬指導の音声から薬歴SOAPを十数秒で自動生成",
+  "department": "薬剤師",
+  "who_and_problem": "ウィーメックス（医療IT）は、調剤薬局の薬剤師が服薬指導後にSOAP形式（主観的情報・客観的情報・評価・計画）の薬歴を手入力しており、患者ごとに内容が異なるため定型文では対応できず、記録にかなりの時間がかかっている課題に対して支援サービスを開発した。",
+  "problem_types": [
+    "手入力・転記・記録の負荷"
+  ],
+  "ai_and_system": "AIは、服薬指導の会話を雑音の多い環境でも文字起こしし（Azure AI Speech）、そのテキストからSOAP形式の薬歴文を生成する（Azure OpenAI Service）。AIの外側では、生成テキストを薬剤師が確認し必要に応じて修正する運用があり、3省2ガイドラインに準拠した基盤上で提供する。",
+  "platforms": [
+    "Azure AI Speech",
+    "Azure OpenAI"
+  ],
+  "requirements": "データ: 服薬指導の音声録音（実証では約3,000件の服薬指導データで検証）。基盤: Azure AI Speech、Azure OpenAI Service（プロビジョニングスループットユニットで安定したレスポンスを確保）、3省2ガイドライン準拠のAzure環境。運用体制: 薬剤師による生成結果の確認・修正。",
+  "confirmed_effects": "音声録音から十数秒でSOAP形式テキストを生成。Azure OpenAI Serviceのレスポンス時間は平均10秒未満。約3,000件の服薬指導データで実証。",
+  "hypothesized_effects": "薬剤師が患者との対話により多くの時間を使えること、経験の浅い薬剤師が薬歴の書き方を学びやすくなること、ベテランが自身の指導内容を振り返れることを期待。既存ソリューションとの連携による価値提供を構想中。",
+  "source_url": "https://www.microsoft.com/ja-jp/customers/story/20287-wemex-azure",
+  "confirmed_at": "2026-09-07"
+}

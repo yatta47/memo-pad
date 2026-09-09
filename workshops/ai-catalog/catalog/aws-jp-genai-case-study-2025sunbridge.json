@@ -1,0 +1,19 @@
+{
+  "id": "aws-jp-genai-case-study-2025sunbridge",
+  "title": "採用担当向け育成AIコーチでCEOの面接同席を削減",
+  "department": "人事",
+  "who_and_problem": "サンブリッジの採用担当者は経験が浅く、面接準備や候補者対応の判断軸をCEOが直接指導する必要があった。採用面接は年間720回でその半数以上にCEOが関与し、CEOが同席できない場面では担当者だけでCEO視点の回答ができず、育成ノウハウもCEO個人に蓄積されていた。",
+  "problem_types": [
+    "属人化・スキル差"
+  ],
+  "ai_and_system": "AIは、CEOが重視する判断ポイントや候補者との向き合い方を学習させたAmazon Bedrockの対話型チャットボットとして担当者の疑問に回答し、RAGを使ったテスト機能で問題作成・採点・フィードバック生成を行う。AIの外側では、Slack連携で運用メンバーが日々の気づきや更新情報を蓄積してナレッジを最新化する仕組みがあり、テスト結果で育成の進捗や理解度を定量把握する。",
+  "platforms": [
+    "Amazon Bedrock",
+    "Slack"
+  ],
+  "requirements": "データ: CEOの判断ポイント・候補者対応のナレッジ、採用業務の基礎知識（RAG用）、Slackに蓄積される更新情報。基盤: Amazon Bedrock、RAG、Slack。運用体制: 新人エンジニア1名がAIコーディングアシスタントを使い2週間で構築。運用メンバーがSlack経由でナレッジを継続更新。",
+  "confirmed_effects": "年間720回の面接のうちCEO同席が必要だった場面の半数をAIで対応可能にし、年間360時間を削減。年間280回の質問機会で社長視点の回答ができるようになった。",
+  "hypothesized_effects": "属人化の課題は解消に向かっているとしている。採用業務以外の領域への展開や、Slackを軸にしたナレッジ運用の他部門展開により、さらなる生産性向上が期待されている。",
+  "source_url": "https://aws.amazon.com/jp/blogs/news/genai-case-study-2025sunbridge/",
+  "confirmed_at": "2026-09-07"
+}

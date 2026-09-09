@@ -1,0 +1,25 @@
+{
+  "id": "aws-jp-genai-case-study-sugi-pharmacy",
+  "title": "年末調整QAボットと調剤医薬品在庫確認エージェント",
+  "department": "人事",
+  "who_and_problem": "スギ薬局の人事部は年末調整期間中に派遣社員6〜7名を含む約10名体制で社内電話問い合わせに対応しており、グループ再編で対象者が約4,000人増えて問い合わせ増大が見込まれ、約1か月後までにRAGチャットボットが必要だった。また統合直後の調剤薬局の薬剤師は在庫管理システムが会社間で未統合のため近隣店舗に電話で在庫確認しており、相手が忙しく対応できない・遠慮して電話しづらいという心理的障壁があった。",
+  "problem_types": [
+    "問い合わせ・対応の負荷",
+    "情報検索・参照に時間がかかる"
+  ],
+  "ai_and_system": "AIは、年末調整FAQリストを検索して従業員の質問に回答するRAGチャット（Bedrock Chat）と、薬剤師の自然言語の問い合わせをSQLに変換してAmazon Redshiftの在庫データを検索するText2SQLエージェント（Amazon Bedrock Agents）を担当する。AIの外側では、人事部がWeb UIからナレッジ追加やボット編集を行い、シーズン終了後はリソースを削除する運用、Lambda関数内でのアクセス範囲制限（全店舗共通で参照可能なカラムのみ）、Amazon Location Serviceによる近隣店舗検索、Bedrock ChatのAgent連携フロントエンドがある。カスタマイズはKiroで実施。",
+  "platforms": [
+    "Amazon Bedrock",
+    "Bedrock Chat",
+    "Amazon Bedrock Agents",
+    "AWS Lambda",
+    "Amazon Redshift",
+    "Amazon Location Service",
+    "Kiro"
+  ],
+  "requirements": "データ: 年末調整FAQリスト、基幹システムの在庫データ・店舗マスタ・医療薬品マスタ（Amazon Redshiftに集約）。基盤: Amazon Bedrock、Bedrock Chat、Amazon Bedrock Agents、AWS Lambda、Amazon Redshift、Amazon Location Service、Kiro。運用体制: DX・AI推進本部のもと、現場課題を集約するOneSUGI PJ、技術方針を示すCTO as a Service、実装・運用を担うAI推進部の3層。QAボットは社員1人が2日で構築し人事部が管理。",
+  "confirmed_effects": "年末調整QAボット: 約40日間で約2万件を処理、1件10分換算で3,000時間以上の人事工数削減、入電率1.21%→1.08%（対象者約4,000人増にもかかわらず低下）、同じ約10名体制で対応、SaaSなら1,200万円想定のところ運用費約10万円程度。在庫確認エージェント: 約1か月で構築し200店舗に公開、2026年4月初旬から本番展開、電話1店舗分の情報から近隣店舗の在庫と距離の一覧把握へ転換。",
+  "hypothesized_effects": "QAボットは人事全般の問い合わせサポートツールとしての利活用検討を開始し、他部門からも問い合わせ対応へのAIエージェント活用要望が出ている。在庫確認エージェントは調剤薬局全店舗へ展開予定。数年後には数百のAIエージェントを本部メンバーが自ら構築できることをゴールとし、Amazon Bedrock AgentCoreの活用を検討。",
+  "source_url": "https://aws.amazon.com/jp/blogs/news/genai-case-study-sugi-pharmacy/",
+  "confirmed_at": "2026-09-07"
+}

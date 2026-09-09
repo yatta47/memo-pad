@@ -1,0 +1,24 @@
+{
+  "id": "aws-jp-genai-case-study-whitebox",
+  "title": "飲み会幹事代行AIエージェント「KanpAi」をAI駆動開発で構築",
+  "department": "システム開発",
+  "who_and_problem": "IT案件マッチングプラットフォームを運営するWhiteBoxの少人数の開発チームは、新規サービスのプロトタイピングにおいて着想からリリースまでのサイクルが長く、一人のエンジニアがインフラからフロントまで広範囲を担い、定型コードやAPI接続などの反復作業に時間を取られて本質的な価値創出に集中できなかった。ハッカソンの極端な短納期開発では従来手法では実現が困難だった。",
+  "problem_types": [
+    "開発・運用の速度と統制"
+  ],
+  "ai_and_system": "AIは、6つの専門エージェント（会場リサーチ提案、Web予約、二次会リサーチ提案、電話予約、精算計算、継続学習）としてAmazon Bedrock（会場提案はClaude Sonnet 4）で判断・提案を行う。AIの外側では、各エージェントをAWS Lambda上の独立したマイクロサービスとして実装し、LINEへの通知、店舗のWeb予約システムへの自動アクセス、Amazon Connectによる音声での電話予約、Amazon Rekognitionで写真の表情・人数から盛り上がり度を算出する「カンパイメーター」がある。開発ではCursorなどのAIコーディング支援ツールで定型コード・ユニットテスト・リファクタリングを自動化した。",
+  "platforms": [
+    "Amazon Bedrock",
+    "Claude",
+    "AWS Lambda",
+    "Amazon Connect",
+    "Amazon Rekognition",
+    "LINE",
+    "Cursor"
+  ],
+  "requirements": "データ: 予算・人数・好みなどの入力情報、参加者のフィードバック、飲み会中の写真。基盤: Amazon Bedrock、AWS Lambda、Amazon Connect、Amazon Rekognition、LINE。運用体制: 記載なし（正式リリース時期は未定。グループ内にAIエージェント開発フレームワークを構築する計画）。",
+  "confirmed_effects": "従来なら最低でも数か月以上を要する規模の開発を3週間で完成。AWS Summit Japan 2025 生成AIハッカソンで最優秀賞を獲得。",
+  "hypothesized_effects": "UI改善、対応エリア拡大、パーソナライズ強化などを検討中。AI駆動開発の手法をWhiteBoxの全サービスと情報戦略テクノロジーグループのDX支援プロジェクト全体へ展開し、高品質なAIエージェントを迅速に開発できる体制を整える計画。",
+  "source_url": "https://aws.amazon.com/jp/blogs/news/genai-case-study-whitebox/",
+  "confirmed_at": "2026-09-07"
+}

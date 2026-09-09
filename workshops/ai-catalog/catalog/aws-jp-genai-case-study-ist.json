@@ -1,0 +1,23 @@
+{
+  "id": "aws-jp-genai-case-study-ist",
+  "title": "社員一人ひとりのAIエージェント秘書「パイオにゃん」",
+  "department": "全社",
+  "who_and_problem": "伴走型戦略DXファームの情報戦略テクノロジーでは、事業拡大に伴い社内情報がSlack・Googleドライブ・GitHubなど複数ツールに分散して社員が情報検索に多大な時間を要し、社員数増加でコミュニケーションが希薄化して一人ひとりの状況把握が難しく、個人のスキルや経験の成長を客観的に評価できず育成計画の立案が難しかった。",
+  "problem_types": [
+    "情報検索・参照に時間がかかる",
+    "属人化・スキル差"
+  ],
+  "ai_and_system": "AIは、Amazon Bedrock Knowledge BasesによるRAGでの社内情報のあいまい検索、業務内容・行動パターン・参照履歴を用いた個人最適化されたアドバイス、Strands Agents SDKで構築したエージェントによる組織独自のコンピテンシー定義と会話履歴（短期・長期記憶）に基づく成長レーダーチャート生成を担当する。AIの外側では、Slack・Googleドライブ・GitHubとの連携、Knowledge Basesのメタデータフィルタリングによるユーザー権限ごとの検索対象制限、猫アバターが成長するダッシュボードとAIリテラシーレベルに応じた機能アンロック、レスポンシブなUIがある。",
+  "platforms": [
+    "Amazon Bedrock Knowledge Bases",
+    "Strands Agents",
+    "Slack",
+    "Google Drive",
+    "GitHub"
+  ],
+  "requirements": "データ: Slack・Googleドライブ・GitHubの社内情報、ユーザーごとの業務内容・行動パターン・参照履歴、組織独自のコンピテンシー定義、会話履歴。基盤: Amazon Bedrock Knowledge Bases（メタデータフィルタリング）、Strands Agents SDK。運用体制: 2025年にβ版リリースし社内フィードバックを基に機能改善（担当体制の詳細は記載なし）。",
+  "confirmed_effects": "",
+  "hypothesized_effects": "年間24,000時間かかっていた情報探索時間を4,000時間まで約83%削減できることが期待されている（対象400人、年間240日、1日5回、3分/回から30秒/回へのフェルミ推定）。個別最適化されたサポートによるエンゲージメント向上、成長の可視化によるモチベーション維持と自立的学習の促進を見込む。中長期的には音声入出力、API公開、社員間のAIエージェント貸し借りを構想。",
+  "source_url": "https://aws.amazon.com/jp/blogs/news/genai-case-study-ist/",
+  "confirmed_at": "2026-09-07"
+}

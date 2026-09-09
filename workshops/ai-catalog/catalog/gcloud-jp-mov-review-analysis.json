@@ -1,0 +1,25 @@
+{
+  "id": "gcloud-jp-mov-review-analysis",
+  "title": "19サイトの店舗口コミをAIで分析・返信支援",
+  "department": "店舗運営",
+  "who_and_problem": "mov（店舗向け口コミ分析サービス「口コミコム」）の顧客である店舗経営者は本業が忙しく、Googleマップやグルメサイトなど19サイトに散らばる口コミを確認する時間がなかった。店舗スタッフは口コミ返信や投稿文の作成に時間がかかり、mov社内のマーケティング・カスタマーサポート部門も手作業のレポーティングが工数になっていた。",
+  "problem_types": [
+    "調査・分析・原因究明に時間",
+    "文書・資料作成の負荷"
+  ],
+  "ai_and_system": "AIは、口コミのネガポジ分析、日本語の分かち書き・ベクトル化などの前処理、Quality・Service・Cleanliness・Atmosphereの8パターンでのQSCA分類、言語判定、口コミ返信文や投稿文の生成を担当する（Vertex AI、BigQuery ML、Cloud Natural Language）。AIの外側では、19サイトから口コミを収集する仕組み、数億単位のデータをBigQueryに蓄積する分析基盤、Batchによる並列処理、Vertex AI StudioやGoogle Cloudコンソールでの分析結果表示がある。",
+  "platforms": [
+    "Vertex AI",
+    "BigQuery",
+    "Cloud Storage",
+    "Google Cloud Batch",
+    "Datastore",
+    "Cloud Logging",
+    "Cloud Natural Language"
+  ],
+  "requirements": "データ: 複数サイトから収集した日本語の口コミテキストと行動ログ（数億単位）。基盤: Vertex AI、BigQuery、BigQuery ML、Cloud Storage、Batch、Datastore、Cloud Logging、Cloud Natural Language。運用体制: プロダクト開発部にAIエンジニアを配置し、マーケティング・カスタマーサポートのメンバーもBigQuery MLで直接分析する。",
+  "confirmed_effects": "口コミ返信・投稿文作成で店舗スタッフの作業負荷が大幅に軽減したとし、利用者から「口コミを見るのが楽になった」との声がある（数値の記載なし）。",
+  "hypothesized_effects": "口コミデータから「何をすべきか」を提案する仕組み、多言語対応と言語別の可視化、残る手作業の自動化拡張を目指し、最終的に「口コミコムの提案を受け入れるだけで最適な店舗管理ができる」世界観を掲げる。",
+  "source_url": "https://cloud.google.com/blog/ja/topics/customers/mov-word-of-mouth-analysis-with-vertex-ai?hl=ja",
+  "confirmed_at": "2026-09-07"
+}

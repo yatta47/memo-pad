@@ -1,0 +1,22 @@
+services:
+  db:
+    image: postgres:17
+    container_name: aicase-db
+    environment:
+      POSTGRES_DB: aicase
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in .env}
+      AICASE_RW_PASSWORD: ${AICASE_RW_PASSWORD:?set in .env}
+      AICASE_RO_PASSWORD: ${AICASE_RO_PASSWORD:?set in .env}
+    ports:
+      - "${POSTGRES_HOST_PORT:-5432}:5432"
+    volumes:
+      - ./infra/init:/docker-entrypoint-initdb.d:ro
+      - aicase-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d aicase"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  aicase-data:

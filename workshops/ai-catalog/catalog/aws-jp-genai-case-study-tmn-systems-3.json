@@ -1,0 +1,24 @@
+{
+  "id": "aws-jp-genai-case-study-tmn-systems-3",
+  "title": "全社生成AI実行基盤とエンタープライズRAGの構築",
+  "department": "AI推進",
+  "who_and_problem": "東京海上日動システムズのデジタルイノベーション開発部は、全社で生成AIアプリケーションを展開するにあたり、ガバナンス機能・データ・ビジネスロジックを共通化して開発の品質と速度を上げる基盤を必要としていた。社内FAQサイト・社内マニュアル・過去の問い合わせ履歴を統合するRAGでは、二段組や図表混在の複雑なマニュアルの解析、データソースごとの検索精度差、数千〜数万ファイルの高速登録が課題だった。",
+  "problem_types": [
+    "開発・運用の速度と統制"
+  ],
+  "ai_and_system": "AIは、Amazon Bedrock Knowledge BasesのFoundation Model Parsing（Claude）で複雑なレイアウトのPDFを構造化テキストに抽出し、ベクトル検索と回答生成を行う。データソースによってはAmazon SageMaker AIでホストしたオープンソースEmbeddingモデルを使う独自実装RAGを併用するハイブリッド構成。AIの外側では、マルチアカウント構成で各アプリを分離し共通GWアカウントに入出力フィルタリングとログ監視を集約、AWS Step Functions（Distributed Map）とDynamoDBロックによる二段階並列制御のドキュメント登録パイプライン、検索用CPUエンドポイントと登録用GPUエンドポイント（ゼロスケーリング）の使い分けがある。",
+  "platforms": [
+    "Amazon Bedrock",
+    "Amazon Bedrock Knowledge Bases",
+    "Claude",
+    "Amazon SageMaker",
+    "AWS Step Functions",
+    "Amazon DynamoDB",
+    "Amazon S3"
+  ],
+  "requirements": "データ: 社内FAQサイト、社内マニュアル（複雑なレイアウトのPDF）、過去の問い合わせ履歴。基盤: Amazon Bedrock、Amazon Bedrock Knowledge Bases、Amazon SageMaker AI、AWS Step Functions、Amazon DynamoDB、Amazon S3、マルチアカウント構成。運用体制: デジタルイノベーション開発部が構築し、AWSのソリューションアーキテクトとサービス開発チームの支援を受けた。",
+  "confirmed_effects": "",
+  "hypothesized_effects": "ハイブリッドアーキテクチャにより各データソースに最適化された高精度な検索を実現したとしているが数値の記載はない。今後は基盤をAmazon Bedrock AgentCoreなどを活用したAIエージェント実行基盤へ発展させ、金融業界における生成AI活用のリーディングケースを目指す。",
+  "source_url": "https://aws.amazon.com/jp/blogs/news/genai-case-study-tmn-systems-3/",
+  "confirmed_at": "2026-09-07"
+}

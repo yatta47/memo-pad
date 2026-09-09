@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Day 2 付録（講師用カンペ）</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { theme: { extend: { fontFamily: { sans: ['"Noto Sans JP"', 'system-ui', 'sans-serif'] } } } }
+  </script>
+  <style>
+    body { background: #e5e7eb; margin: 0; }
+    .slide {
+      aspect-ratio: 16 / 9; max-width: 1280px; width: 100%;
+      margin: 24px auto; background: #fff; border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0,0,0,.12); padding: 44px 60px;
+      box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden;
+    }
+    .slide { position: relative; }
+    .slide::after { content: attr(data-n) " / " attr(data-total); position: absolute; bottom: 14px; right: 22px; font-size: 12px; color: #94a3b8; }
+    .tips { display: inline-flex; align-items: center; background: #065f46; color: #fff; border-radius: 8px; padding: 4px 12px; font-weight: 700; font-size: 16px; margin-right: 10px; letter-spacing: .04em; }
+    .tips-step { font-size: 13px; color: #64748b; margin-right: 12px; }
+    .step { display: inline-flex; align-items: center; background: #0f172a; color: #fff; border-radius: 8px; padding: 4px 12px; font-weight: 700; font-size: 16px; margin-right: 12px; letter-spacing: .02em; }
+    .tag { display: inline-block; border-radius: 6px; padding: 1px 8px; font-size: 12px; font-weight: 600; vertical-align: middle; }
+    .tag-info { background: #dbeafe; color: #1e40af; }
+    .tag-inst { background: #fee2e2; color: #991b1b; }
+    .num { display: inline-flex; width: 26px; height: 26px; border-radius: 999px; background: #0f172a; color: #fff; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; margin-right: 8px; flex: none; }
+    pre.cheat { background: #0f172a; color: #e2e8f0; border-radius: 10px; padding: 12px 14px; font-size: 11px; line-height: 1.5; white-space: pre-wrap; overflow: hidden; margin: 0; }
+    .fig { height: 100%; display: flex; align-items: center; justify-content: center; }
+    .fig svg { width: 100%; height: 100%; }
+    @media print { body { background: #fff; } .slide { break-inside: avoid; page-break-after: always; margin: 0; box-shadow: none; border-radius: 0; } }
+  </style>
+</head>
+<body class="font-sans text-slate-800">
+<div class="slide justify-center" data-n="1" data-total="2">
+
+  <p class="text-lg text-slate-500 mb-3">社内ワークショップ　Day 2</p>
+  <h1 class="text-4xl font-bold mb-3">付録：講師用カンペ</h1>
+  <p class="text-slate-600 mb-6">当日 AI に貼る指示文と発話。参加者には見せない（本編スライドとは別ファイル）</p>
+  <ul class="list-disc pl-6 text-lg space-y-2 text-slate-800"><li>P.1　STEP 5 の指示文（案。Jira 準備後に確定）</li><li>P.2　STEP 6 の指示文（案）</li></ul>
+
+</div>
+<div class="slide " data-n="2" data-total="2">
+
+  <div class="flex items-baseline justify-between mb-2"><h2 class="text-2xl font-bold">付録 P.1　STEP 5 の指示文（案）／ P.2　STEP 6 の指示文（案）</h2><span class="text-xs text-slate-400">講師用カンペ。参加者には見せない</span></div>
+  <div class="grid grid-cols-2 gap-4 flex-1 overflow-hidden"><div><p class="font-bold text-sm mb-1">STEP 5（Jira 準備後に確定。渡す材料）</p><pre class="cheat">sync/sync_to_jira.py を作ってください。PostgreSQL の cases テーブルを Jira の事例プロジェクトに起票する片方向のバッチです。
+
+## 接続
+- PostgreSQL: .env の DATABASE_URL
+- Jira: .env の JIRA_EMAIL / JIRA_TOKEN / JIRA_CLOUD_ID / JIRA_PROJECT_KEY
+- エンドポイントは https://api.atlassian.com/ex/jira/{JIRA_CLOUD_ID}/rest/api/3/ （スコープ付きトークンはこれ以外で使えない）
+
+## 対応表（列 → Jira フィールド）
+- title → summary
+- department → customfield_XXXXX
+- （...10項目分。docs/jira-fields.md を貼る）
+
+## 挙動
+- 挿入のみ。既に同じ id の Issue があれば何もしない（冪等）
+- 双方向にしない。更新・削除はしない
+- 1件ごとに結果を1行出力し、最後に件数を表示</pre></div><div><p class="font-bold text-sm mb-1">STEP 6（渡す材料）</p><pre class="cheat">mcp/server.py を作ってください。Jira の事例プロジェクトだけを読む MCP サーバです。
+
+## 前提
+- MCP Python SDK 2.x。from mcp.server.mcpserver import MCPServer（FastMCP ではない）。起動は mcp.run(transport=&quot;stdio&quot;)
+- PROJECT_KEY = &quot;AICASE&quot;。全ての JQL は project = AICASE で括る
+- 対応表は sync と同じモジュール（jira_fields.py）から読む
+
+## ツール（3本だけ）
+- find_cases(problem: str): 困りごとの文章から候補を返す（JQL の text ~ で絞る）
+- list_hypothesis_cases(): 効果がまだ仮説の事例
+- get_case(key: str): 1件をカードの形で
+
+## やらないこと
+- 書き込みツールを作らない
+- JQL を引数で受けない
+- PROJECT_KEY 以外のプロジェクトに触れない
+
+作ったら .cursor/mcp.json（と .mcp.json）に登録して、「経理で請求書処理に困っている。近い事例ある？」で試してください。</pre></div></div>
+
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let current = 0;
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((e) => {
+      if (e.isIntersecting && e.intersectionRatio > 0.5) {
+        current = slides.indexOf(e.target);
+      }
+    });
+  }, { threshold: [0.5] });
+  slides.forEach((s) => observer.observe(s));
+  function go(i) {
+    current = Math.max(0, Math.min(slides.length - 1, i));
+    slides[current].scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  document.addEventListener('keydown', (e) => {
+    if (['ArrowRight', 'ArrowDown', ' ', 'PageDown'].includes(e.key)) { e.preventDefault(); go(current + 1); }
+    if (['ArrowLeft', 'ArrowUp', 'PageUp'].includes(e.key)) { e.preventDefault(); go(current - 1); }
+    if (e.key === 'Home') { e.preventDefault(); go(0); }
+    if (e.key === 'End') { e.preventDefault(); go(slides.length - 1); }
+  });
+</script>
+</body>
+</html>

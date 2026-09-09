@@ -1,0 +1,19 @@
+{
+  "id": "aws-jp-genai-case-study-131kr",
+  "title": "薬局DX企業の商談音声を専門用語込みで要約しCRMへ",
+  "department": "営業",
+  "who_and_problem": "薬局DXシステムを提供するアサイクルの営業担当者は、展示会やオンラインデモでの会話内容をCRMに手入力しており、時間がかかるうえ担当者によって情報の質・量がばらついていた。メモ取りで商談が中断し顧客との対話に集中できず、既存の文字起こしサービスでは「アスカン」が「明日感」になるなど調剤薬局業界の専門用語の認識精度が低かった。",
+  "problem_types": [
+    "手入力・転記・記録の負荷"
+  ],
+  "ai_and_system": "AIは、録音した音声ファイルの文字起こし結果に対し、Amazon Bedrock上のLLMにプロンプト制御で専門用語を補正させ、会話の要約・重要キーワード抽出・次のアクション提案をCRM向けの構造化テキストとして生成する。AIの外側では、音声処理をAmazon ECS（AWS Fargate）のコンテナで実行し、AWSネットワーク内のセキュアな環境で処理する。利用者は音声ファイルをアップロードするだけでよい。開発自体もAIコーディングエージェントを活用したAI駆動開発で行った。",
+  "platforms": [
+    "Amazon Bedrock",
+    "Amazon ECS"
+  ],
+  "requirements": "データ: 展示会・オンラインデモで録音した音声ファイル、業界専門用語（プロンプトで補正）。基盤: Amazon Bedrock、Amazon ECS（AWS Fargate）、AWSネットワーク。運用体制: AWS主催ハッカソンで約2週間で構築。CRMへの反映手順の詳細は記載なし。",
+  "confirmed_effects": "ハッカソンの約2週間で実用レベルのシステムを構築（従来は数週間から数か月を要する規模）。業務効果の数値は記載なし。",
+  "hypothesized_effects": "記録作業の自動化により営業担当者が顧客との対話に集中できる環境の構築をねらいとしている。",
+  "source_url": "https://aws.amazon.com/jp/blogs/news/genai-case-study-131kr/",
+  "confirmed_at": "2026-09-07"
+}

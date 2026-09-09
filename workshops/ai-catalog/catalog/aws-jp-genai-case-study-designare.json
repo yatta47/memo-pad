@@ -1,0 +1,27 @@
+{
+  "id": "aws-jp-genai-case-study-designare",
+  "title": "脆弱性情報の収集・分析・レポートを3エージェントで自動化",
+  "department": "セキュリティ",
+  "who_and_problem": "UI企画開発や自社事業を手がけるデジナーレのエンジニアは、自社で開発・運用するシステムのセキュリティ維持のため、複数の脆弱性情報サイトを毎日数時間かけて手動で巡回し、収集・分析していた。重要な脆弱性公開時には迅速な対応が求められ負担が大きく、見落としや分析の遅れがリスクになっていた。",
+  "problem_types": [
+    "調査・分析・原因究明に時間"
+  ],
+  "ai_and_system": "AIは、Strands AgentsのAgent Workflowsで構成した3段階のエージェントを担う。調査エージェントがRSSツール・脆弱性対応状況検索ツール・Web検索ツールで前日公開の脆弱性情報を収集し、執筆エージェントがファイル編集ツールで指定形式のレポートを作成し、校正エージェントが要件適合を判定して対応済みや古い情報があれば調査エージェントに差し戻す。AIの外側では、AgentCore Runtimeでの定時実行、DynamoDBへの調査ログ・レポート保存、S3とCloudFrontで配信するフロントエンド、LambdaとAPI Gatewayのバックエンド、Cognito認証があり、エンジニアは生成レポートを確認して対応を判断する。",
+  "platforms": [
+    "Amazon Bedrock",
+    "Claude",
+    "Strands Agents",
+    "Amazon Bedrock AgentCore",
+    "AWS Lambda",
+    "Amazon DynamoDB",
+    "Amazon Cognito",
+    "Amazon S3",
+    "Amazon CloudFront",
+    "Amazon API Gateway"
+  ],
+  "requirements": "データ: 脆弱性公表サイトのRSS、各脆弱性の対応状況、Web検索結果、過去の調査ログ。基盤: Amazon Bedrock（Claude等）、Strands Agents、Amazon Bedrock AgentCore Runtime、AWS Lambda、Amazon DynamoDB、Amazon Cognito、Amazon S3、Amazon CloudFront、Amazon API Gateway。運用体制: SEが開発を主導。グループ会社にも展開しセキュリティ担当者を中心に約10名が利用。",
+  "confirmed_effects": "担当者が毎日数時間を費やしていた調査作業が事実上ゼロ時間になった。グループ会社を含め約10名が同じフォーマットのレポートを参照し、グループ全体でのセキュリティ対応の標準化を実現。",
+  "hypothesized_effects": "一次情報のソースが固定化されているため、アカウント単位で取得元をカスタマイズできる機能の実装を予定。デフォルトの取得元の追加や、より広範なネットワーク検索の仕組みも検討中。",
+  "source_url": "https://aws.amazon.com/jp/blogs/news/genai-case-study-designare/",
+  "confirmed_at": "2026-09-07"
+}

@@ -1,0 +1,26 @@
+{
+  "id": "aws-jp-gen-ai-usecase-saison-technology",
+  "title": "HULFTサポートの回答作成をRAGで支援",
+  "department": "テクニカルサポート",
+  "who_and_problem": "セゾンテクノロジーのHULFT製品テクニカルサポートセンターのサポートエンジニアが、数万ページのマニュアル・FAQ・過去の問い合わせ履歴から必要な情報を検索して回答を作成していた。若手エンジニアのスキル育成と回答作成時の心理的負担の軽減のため、検索の効率化を求めていた。",
+  "problem_types": [
+    "情報検索・参照に時間がかかる",
+    "問い合わせ・対応の負荷"
+  ],
+  "ai_and_system": "AIは、問い合わせ文からのキーワード抽出・検索クエリ生成（Claude 3 Haiku）と、絞り込んだドキュメントを基にした回答案の生成（Cohere Command R+）を担当する。AIの外側では、Slack上でのボットへのメンションが入口となり、sudachiトークナイザーによるキーワード検索とFAISSの階層チャンクによるベクトル検索で候補文書を絞り込み、Guardrails for Amazon Bedrockでシリアル番号などの機密情報の入力を制限し、Slackに回答を返す。実行環境はECRのコンテナイメージをLambdaで実行するサーバーレス構成。",
+  "platforms": [
+    "Amazon Bedrock",
+    "Claude",
+    "Cohere Command",
+    "Amazon Bedrock Guardrails",
+    "AWS Lambda",
+    "Amazon ECR",
+    "FAISS",
+    "Slack"
+  ],
+  "requirements": "データ: HULFT製品のマニュアル・FAQ・過去の問い合わせ履歴（階層的にチャンク分割して格納）。基盤: Amazon Bedrock（Claude 3 Haiku、Cohere Command R+、Guardrails）、AWS Lambda、Amazon ECR、FAISS、Slack連携。運用体制: 全社横断の研究会LLM Mavericksが開発を主導し、サポートエンジニアのフィードバックを基に段階的に改善する。",
+  "confirmed_effects": "サポートエンジニアの回答作成時間を最大30%短縮。テクニカルサポートセンター全体で約10%の業務効率化。サポートエンジニアの半数以上が心理的負担の軽減を回答。回答精度はAmazon Kendra利用時比で14%、Knowledge Bases for Amazon Bedrock比で22%向上。コストは質問1,000件あたり30ドル以下。",
+  "hypothesized_effects": "Agents for Amazon Bedrockの導入により、不適切な質問内容の事前ブロックや利用者への追加質問を取り入れ、より安全で正確な回答生成を目指している。",
+  "source_url": "https://aws.amazon.com/jp/blogs/news/gen-ai-usecase-saison-technology/",
+  "confirmed_at": "2026-09-07"
+}

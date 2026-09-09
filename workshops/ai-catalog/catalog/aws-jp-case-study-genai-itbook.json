@@ -1,0 +1,23 @@
+{
+  "id": "aws-jp-case-study-genai-itbook",
+  "title": "公共調達の提案書ドラフトを十日から半日に",
+  "department": "営業",
+  "who_and_problem": "自治体・国向けコンサルティングを主軸とするITbookの提案担当コンサルタントや営業担当者は、調達仕様書や評価基準書を読み解いて限られた期間で提案書を仕上げていた。案件数の増加で事前調査や構成の作り込みに時間を確保できず、繁忙期には複数案件が同時進行し、過去の類似案件や関連資料を数十件単位で読み込む準備負荷も大きかった。必須項目・加点項目を確実に押さえる精度を組織全体で上げる必要があった。",
+  "problem_types": [
+    "文書・資料作成の負荷",
+    "情報検索・参照に時間がかかる"
+  ],
+  "ai_and_system": "AIは、アップロードされた提案依頼書・調達仕様書・評価基準書等から背景・課題、提案項目、採点基準（必須・加点）、制約条件を抽出し、章ごとの目的を示すアウトラインを生成し、AgentCore RuntimeとGatewayのナレッジ検索ツールで追加検索しながら本文ドラフトを生成する（Claude中心、単純な抽出工程は軽量モデル）。AIの外側では、資料をAmazon S3に保存し、過去の提案内容や都道府県ガイドラインをAmazon OpenSearch Serviceの検索基盤に別途登録し、利用者がどのナレッジ・時点の資料を使うかを選択できる。抽出結果・アウトライン・本文の各段階で人が確認・編集するHuman-in-the-loop設計。",
+  "platforms": [
+    "Amazon Bedrock",
+    "Claude",
+    "Amazon Bedrock AgentCore",
+    "Amazon S3",
+    "Amazon OpenSearch Service"
+  ],
+  "requirements": "データ: 提案依頼書・調達仕様書・評価基準書・提案書作成要領、過去の提案内容、都道府県のガイドライン。基盤: Amazon Bedrock（Claudeと軽量モデル）、Amazon Bedrock AgentCore Runtime / Gateway、Amazon S3、Amazon OpenSearch Service。運用体制: ITbookが業務要件と品質基準を定義し、アクロクエストテクノロジーが実装を担当。AIMS（ISO/IEC 42001）取得企業としてデータを学習に使わない形で利用。2026年6月時点で社内トライアル利用中。",
+  "confirmed_effects": "提案書の骨子作成に約十日を要していた作業が半日程度で完了。付加価値を高める検討に充てられる日数が平均二日程度から平均五日以上に増加。",
+  "hypothesized_effects": "性能改善と管理機能の整備を進める計画。民間企業向け提案書への段階的な適用範囲拡大や、自治体職員による調達仕様書作成の支援を最終目標として描いている。",
+  "source_url": "https://aws.amazon.com/jp/blogs/news/case-study-genai-itbook/",
+  "confirmed_at": "2026-09-07"
+}

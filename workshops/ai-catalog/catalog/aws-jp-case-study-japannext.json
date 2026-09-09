@@ -1,0 +1,22 @@
+{
+  "id": "aws-jp-case-study-japannext",
+  "title": "電話対応をAmazon Connectと通話要約で刷新",
+  "department": "営業",
+  "who_and_problem": "液晶モニターメーカーJAPANNEXTの営業アシスタント5名は、1日平均80件の営業問い合わせを固定電話で受けており、担当者不在やルーティングに数分を要し、伝言や情報連携が属人的だった。カスタマーサポートでも通話後のCRM入力に1件15分かかり、記録の粒度がばらつき、重要案件のスーパーバイザー連携に10分程度のタイムラグがあった。",
+  "problem_types": [
+    "問い合わせ・対応の負荷",
+    "手入力・転記・記録の負荷"
+  ],
+  "ai_and_system": "AIは、Amazon Connect Contact Lensによる通話の文字起こしと、Amazon Bedrock（Claude）によるカスタマイズした通話要約を担当する。AIの外側では、Amazon Connectのルーティングプロファイルで部門ごとに着信を自動振り分けし、AWS Lambdaによるイベントドリブンな連携で終話後数分以内に担当者のチャットツールへ要約を届ける。CRMからAmazon Connectへ顧客情報を定期連携するロジックを追加し、CRM更改にも耐えるよう疎結合に設計した。",
+  "platforms": [
+    "Amazon Connect",
+    "Amazon Bedrock",
+    "Claude",
+    "AWS Lambda"
+  ],
+  "requirements": "データ: 通話音声と文字起こし、CRMの顧客情報。基盤: Amazon Connect（Contact Lens）、Amazon Bedrock（Claude）、AWS Lambda、チャットツール、新CRM。運用体制: クラスメソッドが設計・導入を支援。営業時間外対応のカレンダー管理などを引き継ぎ、顧客側が自走して運用。カスタマーサポート部門では現場担当者が要件定義に参加。",
+  "confirmed_effects": "営業部門で1日の電話対応件数が15%増加、電話引き継ぎ時間がゼロ、引き継ぎ漏れゼロ、担当者の残業時間が15%削減。電話のピーク対応処理が1日約80件から100件へ。物理電話撤廃による執務室の静音化。",
+  "hypothesized_effects": "問い合わせ内容が漏れなく記録されることで、今後の営業活動の分析や向上が見込めるとしている。RMA（返品・交換）チームへのAmazon Connect展開や、蓄積データのビジネス活用を今後の取り組みとして想定。",
+  "source_url": "https://aws.amazon.com/jp/blogs/news/case_study_japannext/",
+  "confirmed_at": "2026-09-07"
+}

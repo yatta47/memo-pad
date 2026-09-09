@@ -1,0 +1,20 @@
+{
+  "id": "azure-jp-toshiba-smt-line-multiagent",
+  "title": "製造ライン不良の原因究明をマルチエージェントで数分に",
+  "department": "生産技術",
+  "who_and_problem": "東芝の生産技術センターが検証。SMT（表面実装）ラインは少量多品種化で生産ロット切り替え時の段取り作業が頻繁になり、不良発生時の原因特定から改善策立案までに数時間を要することがあった。判断は熟練者の経験に依存して技術継承が難しく、複数メーカーの設備が混在してデータの一元管理も困難だった。",
+  "problem_types": [
+    "調査・分析・原因究明に時間",
+    "属人化・スキル差"
+  ],
+  "ai_and_system": "AIは、分析計画を立てる計画エージェント、Deep Researchで分析を実行する分析エージェント、対処策を立案する改善提案エージェントの3つが連携し、エージェント間の対話をチャット形式で可視化する（Azure OpenAIベース）。AIの外側では、複数メーカーの設備からデータを自動収集してダッシュボードに可視化する仕組みがあり、利用者はダッシュボード上のKPIをクリックするだけで分析を起動する。製造ナレッジはCSVから拡張可能な構造で管理する。",
+  "platforms": [
+    "Azure OpenAI",
+    "Azure App Service"
+  ],
+  "requirements": "データ: 各設備の運用データと製造ナレッジベース。基盤: Azure OpenAI、Azure App Service（Azure Cosmos DB、AI Search、Functions、Event Hubsは検討中）。運用体制: 「定年のないベテラン」としてナレッジを継続的に追加・更新する運用。MVP開発期間は3か月。",
+  "confirmed_effects": "生産技術センターでの検証で、従来は数時間を要することもあった原因究明と改善提案を数分以内で提示。",
+  "hypothesized_effects": "チョコ停時のリカバリー迅速化、確度の高い改善策によるPDCAの高速化、思考過程の可視化による技術継承の手がかりを期待。2026年の商品化を予定し、パイロット活用を検討中。",
+  "source_url": "https://www.microsoft.com/ja-jp/customers/story/25623-toshiba-corporation-azure",
+  "confirmed_at": "2026-09-07"
+}

@@ -1,0 +1,24 @@
+{
+  "id": "aws-jp-jpxi-scriptsasia-ai-translation",
+  "title": "決算説明会スクリプトの英訳を生成AIで自動化",
+  "department": "翻訳",
+  "who_and_problem": "JPX総研の子会社SCRIPTS Asiaは、上場企業の決算説明会・IRイベントの書き起こしテキストの英語翻訳と品質確認をすべて人手で行っていた。翻訳量が膨大でコスト負担が大きく、繁忙期には大量の翻訳人員が必要で季節要因により人員確保が困難、会社固有の専門用語や業界用語に対応した高精度な翻訳も求められ、カバーする全イベントの英訳は時間・費用の両面で困難だった。",
+  "problem_types": [
+    "文書・資料作成の負荷"
+  ],
+  "ai_and_system": "AIは、Amazon Bedrock上のClaude Sonnetで日本語スクリプトを1行ずつのチャンクに分割して前後の文脈を参照しながら英訳し、過去の翻訳履歴・辞書・証券用語集とレビュアーのフィードバックから整理した暗黙知をプロンプトや辞書情報として反映する。AIの外側では、AWS Fargateで英訳・整形処理を実行し、EventBridge・Lambda・SQSでクォータ超過を防ぐ制御、DynamoDBで過去の翻訳情報や単語情報を保持し、音声不明瞭などの翻訳困難ケース（全体の1〜3%）はエラーとして止めて人手翻訳に回すHuman-in-the-loopを組む。",
+  "platforms": [
+    "Amazon Bedrock",
+    "Claude",
+    "Amazon ECS",
+    "Amazon EventBridge",
+    "AWS Lambda",
+    "Amazon SQS",
+    "Amazon DynamoDB"
+  ],
+  "requirements": "データ: 日本語の書き起こしスクリプト、過去の翻訳履歴、辞書、証券用語集、レビュアーのフィードバック資料。基盤: Amazon Bedrock（Claude Sonnet）、AWS Fargate、Amazon EventBridge、AWS Lambda、Amazon SQS、Amazon DynamoDB。運用体制: プロダクション担当者と翻訳有識者が品質評価（BERT・BLEUスコアと相対評価）とラストワンマイルの品質保証を担う。",
+  "confirmed_effects": "翻訳有識者の相対評価で最終品質90点以上（単純なAI一括翻訳は45〜50点）。人手での成果物作成と比較して時間効率は概ね10倍以上、費用効率は概算で数十倍。翻訳困難ケースは全体の1〜3%程度。従来コスト面で英訳できなかったイベントも英文スクリプトが作成され、英文対応イベント数が大幅に増加。",
+  "hypothesized_effects": "人手で実施している音声の書き起こし業務への生成AI適用を検討し、人手不足でリーチできなかったイベントへの対応範囲拡大とデータ拡充による新たな価値創出を目指す。",
+  "source_url": "https://aws.amazon.com/jp/blogs/news/jpxi-scriptsasia-ai-translation/",
+  "confirmed_at": "2026-09-07"
+}

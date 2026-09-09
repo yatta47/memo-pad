@@ -1,0 +1,20 @@
+{
+  "id": "gcloud-jp-kyoto-univ-hospital-cocktailai",
+  "title": "眼科医の診療文書作成を過去カルテから自動生成",
+  "department": "医師",
+  "who_and_problem": "京都大学医学部附属病院の眼科医師は、診療録・手術記録・退院時サマリー・診療情報提供書など多様な文書作成に、1日の診察後3〜4時間、時には週末をまとめて費やしていた。過去の診療録と同じ内容を繰り返し記入する必要があった。",
+  "problem_types": [
+    "文書・資料作成の負荷"
+  ],
+  "ai_and_system": "AIは、過去のカルテ情報をもとに、あらかじめ用意した定型文テンプレートの項目に文章を生成して挿入する（Vertex AI上のMedLM、Gemini 1.0 Pro、Gemini 1.5 Flashを組み合わせ）。カルテを機械学習させず、テンプレートの記述から医師の意図を読み取るテンプレートベースの方式で、入力データは蓄積・二次利用しない。AIの外側では、医師がテンプレート内の箇所をクリックして挿入し、内容を確認・修正・校正して補足を記入するワークフローがあり、文書作成システム「DocuMaker」に組み込まれる。",
+  "platforms": [
+    "Vertex AI",
+    "MedLM",
+    "Gemini"
+  ],
+  "requirements": "データ: 過去のカルテ情報と文書テンプレート。基盤: Google Cloud Vertex AI（MedLM、Gemini 1.0 Pro、Gemini 1.5 Flash）、データ非保持・非流用の保証。運用体制: 京大病院とフィッティングクラウド・ファインデックスの連携、2021年の京大病院とGoogle Cloudのパートナー協定に基づく技術サポート、医師による検証とフィードバック。",
+  "confirmed_effects": "眼科退院時の診療情報提供書での検証で、生成文章の56%が「そのまま」または「微修正のみ」で利用可能、36%が「記載追加のみ」で利用可能、計92%で文書作成タスクを軽減可能。",
+  "hypothesized_effects": "より優れたAIモデルの登場でさらに高い読解能力を得られる見込み。DocuMakerを通じて他の医療機関へ展開予定。医師の働き方改革に加え、患者に提供する医療水準の向上につながると期待。個人情報を守りつつクラウド上で医療情報を共有する仕組みの構築を目指す。",
+  "source_url": "https://cloud.google.com/blog/ja/topics/customers/kyoto-university-hospital-using-gen-ai-to-streamline-document-creation/?hl=ja",
+  "confirmed_at": "2026-09-07"
+}

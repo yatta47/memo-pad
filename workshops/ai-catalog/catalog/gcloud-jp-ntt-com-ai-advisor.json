@@ -1,0 +1,20 @@
+{
+  "id": "gcloud-jp-ntt-com-ai-advisor",
+  "title": "セキュリティ運用の分析・優先付けをGeminiで支援",
+  "department": "セキュリティ",
+  "who_and_problem": "NTTコミュニケーションズは、日本企業の約9割がセキュリティ人材不足（約11万人不足と推計）に悩み、セキュリティ担当者がアラート分析に追われて教育の時間が取れず、経験の浅い担当者はアラートを受けても次のアクションが分からないという顧客企業の課題に対し、生成AIを組み込んだセキュリティ運用支援サービス「AI Advisor」を開発した。",
+  "problem_types": [
+    "監視・見守りの限界",
+    "属人化・スキル差"
+  ],
+  "ai_and_system": "AIは、セキュリティ情報の収集・整理、脆弱性の判断、大量アラートの優先順位付け、レポート作成、次に取るべきアクションの質問候補の生成、ヘルプデスク支援を担当する（Gemini）。AIの外側では、SIEM・SOAR・XDRなど既存のIT運用ソリューションとの連携と、組織固有の情報を組み込む個社ごとのカスタマイズがあり、Cloud Runベースのサーバレス構成で提供する。",
+  "platforms": [
+    "Gemini",
+    "Cloud Run"
+  ],
+  "requirements": "データ: SIEM/SOAR/XDRが収集するログ・アラートと組織固有の情報。基盤: Google Cloud（Cloud Run）、Gemini。運用体制: 各企業のシステム環境に応じた導入と個社ごとのカスタマイズ対応。2024年11月にソリューション提供開始、2025年4月にサービス化。",
+  "confirmed_effects": "開発期間（2024年10月〜2025年3月の実質作業）を従来比20〜30%短縮。",
+  "hypothesized_effects": "組織全体のセキュリティレベル向上、セキュリティ担当者の生産性向上、コスト・時間両面での導入敷居の低減、セキュリティ人材不足という社会課題の解決への貢献を期待。",
+  "source_url": "https://cloud.google.com/blog/ja/topics/customers/ntt-communications-ai-advisor-using-gemini?hl=ja",
+  "confirmed_at": "2026-09-07"
+}

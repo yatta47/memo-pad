@@ -1,0 +1,25 @@
+{
+  "id": "aws-jp-genai-case-study-makita",
+  "title": "労働災害報告書作成支援AIと経営ダッシュボードを内製",
+  "department": "安全衛生",
+  "who_and_problem": "船舶用ディーゼルエンジンを製造するマキタの情報企画部（システム開発経験の少ないエンジニア主導）。経営判断に必要なデータが部門に分散して意思決定のボトルネックになっていた。労働災害報告書の作成には時間がかかり提出者ごとに記載・検討レベルがばらつき、過去の類似事例や法令確認が経験と知識に依存して属人化し、多面的な対策検討が不足しがちだった。",
+  "problem_types": [
+    "文書・資料作成の負荷",
+    "属人化・スキル差"
+  ],
+  "ai_and_system": "AIは、製造業のリスクアセスメント手法に沿った網羅的な原因分析・対策の提案をマルチエージェントコラボレーションで行い、RAGとMCP経由のデータベース呼び出しを使い分けて過去15年分の自社災害DBや法令情報を検索・参照する（Amazon BedrockとPythonで構築、既存のDifyチャット基盤のアーキテクチャを踏襲）。AIの外側では、関係者が原因分析・対策立案の議論を行う。経営ダッシュボードはAWS LambdaでSaaS・オンプレからデータ収集、AWS Glue DataBrewでETL、Amazon S3で一元管理、Amazon QuickSightで可視化する構成でAIは用いない。",
+  "platforms": [
+    "Amazon Bedrock",
+    "MCP",
+    "Dify",
+    "AWS Lambda",
+    "AWS Glue DataBrew",
+    "Amazon S3",
+    "Amazon QuickSight"
+  ],
+  "requirements": "データ: 過去15年分の自社労働災害DB、法令情報、就労・人材管理・会計データ。基盤: Amazon Bedrock、Python、MCP、既存Dify基盤、AWS Lambda、AWS Glue DataBrew、Amazon S3、Amazon QuickSight（Amazon Quick Suite）、AWSのセキュアなネットワーク内で完結。運用体制: 情報企画部が内製開発し、全部門からの活用案に応える推進役を担う。",
+  "confirmed_effects": "経営ダッシュボードは7つのダッシュボードで231の指標を可視化し、7か月で内製。報告書作成支援AIは1.5か月で内製し、過去15年分の災害DBを検索分析できるようになった。社内全部門から200近いAI・ダッシュボード関連の活用案が寄せられている。",
+  "hypothesized_effects": "報告書作成支援AIについては、過去事例を踏まえた多角的分析による再発防止策の質の向上や検討漏れ防止を効果として挙げているが、時間削減などの数値は記載なし。今後、より多くの社員の同時利用や複雑な業務への適用要望が増えると見込み、データ活用とAIの高度利用を推進する方針。",
+  "source_url": "https://aws.amazon.com/jp/blogs/news/genai-case-study-makita/",
+  "confirmed_at": "2026-09-07"
+}

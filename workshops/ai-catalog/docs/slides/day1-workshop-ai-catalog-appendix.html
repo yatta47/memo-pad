@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Day 1 付録（講師用カンペ）</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { theme: { extend: { fontFamily: { sans: ['"Noto Sans JP"', 'system-ui', 'sans-serif'] } } } }
+  </script>
+  <style>
+    body { background: #e5e7eb; margin: 0; }
+    .slide {
+      aspect-ratio: 16 / 9; max-width: 1280px; width: 100%;
+      margin: 24px auto; background: #fff; border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0,0,0,.12); padding: 44px 60px;
+      box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden;
+    }
+    .slide { position: relative; }
+    .slide::after { content: attr(data-n) " / " attr(data-total); position: absolute; bottom: 14px; right: 22px; font-size: 12px; color: #94a3b8; }
+    .tips { display: inline-flex; align-items: center; background: #065f46; color: #fff; border-radius: 8px; padding: 4px 12px; font-weight: 700; font-size: 16px; margin-right: 10px; letter-spacing: .04em; }
+    .tips-step { font-size: 13px; color: #64748b; margin-right: 12px; }
+    .step { display: inline-flex; align-items: center; background: #0f172a; color: #fff; border-radius: 8px; padding: 4px 12px; font-weight: 700; font-size: 16px; margin-right: 12px; letter-spacing: .02em; }
+    .tag { display: inline-block; border-radius: 6px; padding: 1px 8px; font-size: 12px; font-weight: 600; vertical-align: middle; }
+    .tag-info { background: #dbeafe; color: #1e40af; }
+    .tag-inst { background: #fee2e2; color: #991b1b; }
+    .num { display: inline-flex; width: 26px; height: 26px; border-radius: 999px; background: #0f172a; color: #fff; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; margin-right: 8px; flex: none; }
+    pre.cheat { background: #0f172a; color: #e2e8f0; border-radius: 10px; padding: 12px 14px; font-size: 11px; line-height: 1.5; white-space: pre-wrap; overflow: hidden; margin: 0; }
+    .fig { height: 100%; display: flex; align-items: center; justify-content: center; }
+    .fig svg { width: 100%; height: 100%; }
+    @media print { body { background: #fff; } .slide { break-inside: avoid; page-break-after: always; margin: 0; box-shadow: none; border-radius: 0; } }
+  </style>
+</head>
+<body class="font-sans text-slate-800">
+<div class="slide justify-center" data-n="1" data-total="5">
+
+  <p class="text-lg text-slate-500 mb-3">社内ワークショップ　Day 1</p>
+  <h1 class="text-4xl font-bold mb-3">付録：講師用カンペ</h1>
+  <p class="text-slate-600 mb-6">当日 AI に貼る指示文と発話。参加者には見せない（本編スライドとは別ファイル）</p>
+  <ul class="list-disc pl-6 text-lg space-y-2 text-slate-800"><li>P.1　STEP 1 の指示文（雑な指示 ／ 正しい指示文）</li><li>P.2　STEP 2 の発話 ／ P.3　STEP 3 の指示文（前半）</li><li>P.3　STEP 3 の指示文（後半）</li><li>P.4　STEP 4 の指示文（案）</li></ul>
+
+</div>
+<div class="slide " data-n="2" data-total="5">
+
+  <div class="flex items-baseline justify-between mb-2"><h2 class="text-2xl font-bold">付録 P.1　STEP 1 の指示文</h2><span class="text-xs text-slate-400">講師用カンペ。参加者には見せない</span></div>
+  <div class="grid grid-cols-2 gap-4 flex-1 overflow-hidden"><div><p class="font-bold text-sm mb-1">① 雑な指示（先に貼る）</p><pre class="cheat">このURLを読んで事例としてまとめて。 https://aws.amazon.com/jp/blogs/news/179920-2/</pre></div><div><p class="font-bold text-sm mb-1">② 正しい指示文（当日貼る版）</p><pre class="cheat">`.claude/skills/case-card/SKILL.md` を作ってください。URLを1本受け取り、記事を読んで「AI活用事例カード」のJSONを1件書くスキルです。
+
+## 出力
+- `catalog/&lt;id&gt;.json` に1ファイル。既にあれば上書きしない。
+- スキーマは `docs/case-schema.md` に従う。キー名・型・順序を変えない。
+
+## 各項目の書き方
+- `department`: 困っていた人の業務機能を短い名詞1つで（10字以内）。会社名ではない。
+- `who_and_problem`: 主語（部署・役割）を必ず入れる。困りごとを1〜3文。
+- `problem_types`: `docs/case-schema.md` の「困りごとの型（固定の8種）」から1〜2個。先頭が主。一覧以外の語は使わない。
+- `ai_and_system`: AIがしていることと、AIの外側の仕組み（データ連携、承認、通知、UI）を分けて書く。
+- `platforms`: 記事に出てくるサービス・製品・モデルの名前を、`docs/case-schema.md` の正規化辞書の表記で列挙。記事に無いものは入れない。
+- `requirements`: データ・基盤・運用体制の3点。記事に無い点は「記載なし」と書く。
+- `confirmed_effects`: 記事に数値や実測の記述があるものだけ。無ければ空文字。
+- `hypothesized_effects`: 記事が「期待」「見込む」「目指す」「検討中」と書いているもの。confirmed と混ぜない。
+- `source_url`: 受け取ったURLそのまま。`confirmed_at`: 今日の日付。
+
+## 切り分けの例
+- 「作業時間を約70〜80%削減」「導入3か月後の実測」 → confirmed_effects
+- 「作業負荷の大幅な軽減が期待」「今後、他部署への展開を検討」 → hypothesized_effects
+
+## やらないこと
+- 記事に無いことを補わない。推測で埋めるくらいなら「記載なし」か空文字。
+- 出典URL以外のページを読まない。
+- 複数URLを一度に処理しない（1回の呼び出しで1件）。
+
+作ったら、`https://aws.amazon.com/jp/blogs/news/179920-2/` で1件生成して、結果のJSONを表示してください。</pre></div></div>
+
+</div>
+<div class="slide " data-n="3" data-total="5">
+
+  <div class="flex items-baseline justify-between mb-2"><h2 class="text-2xl font-bold">付録 P.2　STEP 2 の発話 ／ P.3 STEP 3 の指示文（前半）</h2><span class="text-xs text-slate-400">講師用カンペ。参加者には見せない</span></div>
+  <div class="grid grid-cols-2 gap-4 flex-1 overflow-hidden"><div><p class="font-bold text-sm mb-1">STEP 2（会話で言う。MCP の追加は .mcp.json に1行）</p><pre class="cheat">`catalog/` の JSON を全部 PostgreSQL に入れて。スキーマは `docs/case-schema.md`。テーブル名は `cases`、`id` を主キーに。MCP の postgres だけで入れて（スクリプトは書かない）。何件かずつまとめて INSERT して、重複しても壊れないようにして。最後に件数を確認して。</pre></div><div><p class="font-bold text-sm mb-1">STEP 3（当日貼る版・前半: データ）</p><pre class="cheat">`app/main.py` に Streamlit のアプリを1ファイルで作ってください。事例カタログを人が見るための画面です。
+
+## データ
+- PostgreSQL。接続文字列は `.env` の `DATABASE_URL`（`python-dotenv` で読む）。
+- テーブルは `cases`。列は `docs/case-schema.md` のキーと同じ（`id`, `title`, `department`, `who_and_problem`, `problem_types`, `ai_and_system`, `platforms`, `requirements`, `confirmed_effects`, `hypothesized_effects`, `source_url`, `confirmed_at`）。`problem_types` と `platforms` は `text[]`。
+- 依存は導入済み: `streamlit`（1.63。`:color-badge[]` と `st.graphviz_chart`（DOT 文字列を渡せばブラウザ側で描画、graphviz 本体は不要）が使える）, `psycopg`, `python-dotenv`。追加しない。</pre></div></div>
+
+</div>
+<div class="slide " data-n="4" data-total="5">
+
+  <div class="flex items-baseline justify-between mb-2"><h2 class="text-2xl font-bold">付録 P.3　STEP 3 の指示文（後半）</h2><span class="text-xs text-slate-400">講師用カンペ。参加者には見せない</span></div>
+  <div class="grid grid-cols-2 gap-4 flex-1 overflow-hidden"><div><p class="font-bold text-sm mb-1">機能 1〜4</p><pre class="cheat">## 機能
+1. 絞り込み（サイドバー）: キーワード1箱（`title`, `who_and_problem`, `ai_and_system` を ILIKE で部分一致）、困りごとの型の選択（件数付き）、部署・役割の選択（件数順）、基盤の複数選択（選んだものをすべて含む事例。候補は件数付き）。
+2. 一覧: **見出し行付きの行リスト**。`st.columns` で見出し行（項目名を太字）を1行出し、`st.divider()` の下に1事例1行で並べる。`confirmed_at` 降順。列は: タイトル（太字）／部署・役割（`:blue-badge[]`）／使っている基盤（`:gray-badge[]`、上位3つ＋「他n件」）／誰が、何に困っていたか（困りごとの型を `:orange-badge[]` で先に出し、その下に冒頭55字を `st.caption`）／確認できた効果（冒頭50字、無ければ「（まだ仮説段階）」）／確認日／「詳細」ボタン。列幅の目安は `[2.8, 2.0, 2.3, 2.9, 2.5, 1.3, 1.4]`、`vertical_alignment=&quot;center&quot;`。ボタンは `use_container_width` を付けない（狭い列で文字が切れる）。`st.dataframe` もカードもモーダルも使わない。
+3. 詳細: **別画面**。「詳細」ボタンで `st.query_params[&quot;case&quot;]` に id を入れて `st.rerun()`。`?case=&lt;id&gt;` があれば詳細画面を描画し、「← 一覧へ」ボタンで戻る。10項目を項目名付きで全部表示。確認済み効果は `st.success`、仮説の効果は `st.info` で左右に並べ、出典URLはリンク。
+4. 関連事例（詳細画面の下）: **同じ困りごとの型を最優先**に、同じ部署、基盤の共有の順で SQL で最大6件（並び順: 共有する型の数 → 主の型が一致 → 同じ部署 → 共有する基盤の数）。左に `st.graphviz_chart`（DOT 文字列、`rankdir=LR`、左=この事例、中=困りごとの型（橙・太線）と部署（青）と共有基盤（灰）、右=関連事例。基盤の線は「困りごとでも部署でも繋がらない事例」にだけ描く）、右に関連事例のカード（タイトル、「同じ困りごと」「同じ部署」「共有する基盤」の根拠バッジ、困りごと冒頭60字、「この事例を見る」ボタン）。
+
+</pre></div><div><p class="font-bold text-sm mb-1">やらないこと・起動</p><pre class="cheat">## やらないこと
+- 書き込み機能（登録・編集・削除）は作らない。
+- 認証、ページング、グラフ、CSS調整はしない。
+- SQLは必ずプレースホルダで書く（文字列連結しない）。
+- 複数テーブルを結合する SQL では列に必ず別名（`o.id` など）を付ける。
+- 表示の条件分岐は if 文で書く。`st.x() if cond else st.y()` のような式文にしない（Streamlit が式の戻り値を画面に描画してしまう）。
+
+作ったら `uv run streamlit run app/main.py --server.headless true --server.address &quot;${STREAMLIT_ADDRESS:-127.0.0.1}&quot;` で起動して、URLを表示してください。`STREAMLIT_ADDRESS` は `.env` にあります。</pre></div></div>
+
+</div>
+<div class="slide " data-n="5" data-total="5">
+
+  <div class="flex items-baseline justify-between mb-2"><h2 class="text-2xl font-bold">付録 P.4　STEP 4 の指示文（案。pgvector / AGE の環境準備後に確定）</h2><span class="text-xs text-slate-400">講師用カンペ。参加者には見せない</span></div>
+  <div class="grid grid-cols-2 gap-4 flex-1 overflow-hidden"><div><p class="font-bold text-sm mb-1">意味検索（pgvector）</p><pre class="cheat">検索を「言い換えを拾える」ようにしたい。
+- 環境: PostgreSQL に pgvector が入っている（CREATE EXTENSION vector 済み）。埋め込みは Ollama の bge-m3（1024次元）をローカルで使う
+- cases に embedding vector(1024) 列を足し、who_and_problem ＋ title を埋め込んで全件更新する導出スクリプト（scripts/embed.py）を書く。冪等に
+- app/main.py の一覧のキーワード検索を「検索語を埋め込んで &lt;=&gt; で近い順に上位20件」に差し替える。ILIKE は残さない
+- 同じ「コールセンター」で検索し直し、コンタクトセンターの事例が上に来ることを確認</pre></div><div><p class="font-bold text-sm mb-1">関連事例（AGE）</p><pre class="cheat">関連事例を、SQL の配列演算からグラフの探索に差し替えたい。
+- 環境: Apache AGE が入っている（LOAD &#x27;age&#x27; と search_path は DB 側で設定済み）
+- グラフ cases_graph を作り、ノード Case / ProblemType / Department / Platform、辺 HAS_PROBLEM / FOR / USES を cases から導出するスクリプト（scripts/build_graph.py）を書く。冪等に
+- app/main.py の fetch_related を Cypher（事例 → 型・部署・基盤 → 事例、共有する型の数 → 同じ部署 → 共有基盤の数 の順）に差し替える。画面の見た目は変えない
+- 大成の事例の関連事例が、差し替え前と同じ顔ぶれで出ることを確認</pre></div></div>
+
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let current = 0;
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((e) => {
+      if (e.isIntersecting && e.intersectionRatio > 0.5) {
+        current = slides.indexOf(e.target);
+      }
+    });
+  }, { threshold: [0.5] });
+  slides.forEach((s) => observer.observe(s));
+  function go(i) {
+    current = Math.max(0, Math.min(slides.length - 1, i));
+    slides[current].scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  document.addEventListener('keydown', (e) => {
+    if (['ArrowRight', 'ArrowDown', ' ', 'PageDown'].includes(e.key)) { e.preventDefault(); go(current + 1); }
+    if (['ArrowLeft', 'ArrowUp', 'PageUp'].includes(e.key)) { e.preventDefault(); go(current - 1); }
+    if (e.key === 'Home') { e.preventDefault(); go(0); }
+    if (e.key === 'End') { e.preventDefault(); go(slides.length - 1); }
+  });
+</script>
+</body>
+</html>

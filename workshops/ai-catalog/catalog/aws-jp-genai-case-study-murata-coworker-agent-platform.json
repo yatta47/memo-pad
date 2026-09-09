@@ -1,0 +1,27 @@
+{
+  "id": "aws-jp-genai-case-study-murata-coworker-agent-platform",
+  "title": "3万人利用「Murata Coworker」をAIエージェント基盤へ",
+  "department": "AI推進",
+  "who_and_problem": "村田製作所の生成AI CoEは、全社生成AIプロダクト「Murata Coworker」をAIエージェント活用基盤に拡張するにあたり、既存のRAGベースのガバナンスガイドラインではエージェント特有のリスク（意図しない権限行使、想定外のツール利用、メモリ汚染など）をカバーできず、また調査エージェントの1stリリースでOSS（gpt-researcher）の内部構造が複雑化してツール追加のたびにOSS側の実装に踏み込む必要があり運用が不安定だった。",
+  "problem_types": [
+    "開発・運用の速度と統制"
+  ],
+  "ai_and_system": "AIは、資料作成・翻訳（社内用語準拠）・RAG/Agentに加え、Knowledge HubのDeep Research Agentが社内外情報（Web検索、市場調査レポート、社内技術文書、特許、ITSM）を横断調査し、ITSM Agentがナレッジベースとチケット管理システムを参照してヘルプデスク回答を生成する。AIの外側では、Amazon Bedrock AgentCore Runtime/Gatewayで5種のMCPサーバーをコンテナとして登録・統制し、Semantic Searchで必要なツールを動的選択、Amazon BedrockガードレールとNVIDIA NeMo Guardrailsの二重構造、ALB OIDC＋Microsoft Entra ID＋Amazon Verified Permissions（Cedar、RBAC＋ABAC）による「人→Agent→ツール/データ」の認可チェーン、Langfuseでの全LLM呼び出しトレースと回答品質スコアリング、CloudWatchでのコスト可視化、HITL方針を含むガイドラインがある。",
+  "platforms": [
+    "Amazon Bedrock",
+    "Amazon Bedrock AgentCore",
+    "MCP",
+    "Amazon Bedrock Guardrails",
+    "NVIDIA NeMo Guardrails",
+    "Microsoft Entra ID",
+    "Amazon Verified Permissions",
+    "Langfuse",
+    "Amazon CloudWatch",
+    "Amazon DynamoDB"
+  ],
+  "requirements": "データ: 社内技術文書、市場調査レポート、特許情報、業務ナレッジ、ITSMチケット、社内用語・略語辞書、評価用データセット。基盤: Amazon Bedrock（マルチモデル）、Amazon Bedrock AgentCore、MCP、Amazon Verified Permissions、Amazon DynamoDB、Amazon CloudWatch、Langfuse、NeMo Guardrails、Microsoft Entra ID。運用体制: 生成AI CoEがユーザー部門と共創して内製開発し、戦略・技術開発・イネーブルメント・ガバナンス・基盤構築を横断支援。AWS Generative AI Innovation Centerのアドバイザリーを活用してガイドラインを策定し、現場フィードバックで継続改訂。低評価回答の定期レビューと評価データセットによる回帰確認を運用。",
+  "confirmed_effects": "Murata Coworkerは累計約3万人が利用し、1人あたり月約3時間の工数削減を確認。資料作成支援機能のリリース後、パワーポイント資料を一から作る人が激減。AgentCoreへの移行で安定性・ツール利用の統制・可観測性が劇的に向上（数値なし）。",
+  "hypothesized_effects": "Semantic Searchによるツール選択でツール数が増えてもトークン消費やレイテンシを抑えつつ回答精度を維持・向上できる設計としている。今後は社内外システム連携、オペレーション再構築、デジタルツインの実現、フィジカルAIとの接続へ拡張する構想。",
+  "source_url": "https://aws.amazon.com/jp/blogs/news/genai-case-study-murata-coworker-agent-platform/",
+  "confirmed_at": "2026-09-07"
+}

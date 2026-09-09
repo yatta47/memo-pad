@@ -1,0 +1,25 @@
+{
+  "id": "aws-jp-179920-2",
+  "title": "非エンジニアが構築した契約書管理AIエージェント",
+  "department": "プロパティ管理",
+  "who_and_problem": "大成株式会社のプロパティマネジメント業務担当者が、契約書の検索を手作業に頼り、複数のPDFを開いて目視で確認していた。テナントごとに契約仕様が異なるためビル名やテナント名だけでは目的の契約書に辿り着けず、ビルオーナーからの問い合わせに対して契約書の特定から回答までに多くの時間を要していた。",
+  "problem_types": [
+    "情報検索・参照に時間がかかる",
+    "問い合わせ・対応の負荷"
+  ],
+  "ai_and_system": "AI（Amazon Bedrock上のClaude）は、契約書PDFのような非構造化データから文脈を理解して必要な情報を抽出する役割を担う。AIの外側の仕組みは、従業員が問い合わせを投げるSlackとの統合、AWS Lambda・Amazon S3・Amazon DynamoDBによるサーバーレスの処理基盤で、承認や通知の仕組みは記載なし。",
+  "platforms": [
+    "Amazon Bedrock",
+    "Claude",
+    "Slack",
+    "AWS Lambda",
+    "Amazon S3",
+    "Amazon DynamoDB",
+    "Amazon Q Developer"
+  ],
+  "requirements": "データ: 契約書PDF。基盤: Amazon Bedrock、AWS Lambda、Amazon S3、Amazon DynamoDB、Slack。運用体制: IT戦略推進室の非エンジニアのプロジェクトマネージャーが中心となり、Amazon Q Developerの支援を受けて構築。運用担当の記載なし。",
+  "confirmed_effects": "契約書からの情報抽出にかかる作業時間を約70〜80%削減。従来1件あたり数十分を要していた作業が数分で完了。",
+  "hypothesized_effects": "CSV形式でのデータ出力機能による契約書情報の一括管理・分析、契約書の自動要約機能や自然言語での高速検索機能の追加を検討中。施設管理報告書の自動生成やメンテナンス記録の分析など、プロパティマネジメント業務全般へのAI活用拡大を計画。",
+  "source_url": "https://aws.amazon.com/jp/blogs/news/179920-2/",
+  "confirmed_at": "2026-09-08"
+}

@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>事例カタログをグローバルへ（Day 2）</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { theme: { extend: { fontFamily: { sans: ['"Noto Sans JP"', 'system-ui', 'sans-serif'] } } } }
+  </script>
+  <style>
+    body { background: #e5e7eb; margin: 0; }
+    .slide {
+      aspect-ratio: 16 / 9; max-width: 1280px; width: 100%;
+      margin: 24px auto; background: #fff; border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0,0,0,.12); padding: 44px 60px;
+      box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden;
+    }
+    .slide { position: relative; }
+    .slide::after { content: attr(data-n) " / " attr(data-total); position: absolute; bottom: 14px; right: 22px; font-size: 12px; color: #94a3b8; }
+    .tips { display: inline-flex; align-items: center; background: #065f46; color: #fff; border-radius: 8px; padding: 4px 12px; font-weight: 700; font-size: 16px; margin-right: 10px; letter-spacing: .04em; }
+    .tips-step { font-size: 13px; color: #64748b; margin-right: 12px; }
+    .step { display: inline-flex; align-items: center; background: #0f172a; color: #fff; border-radius: 8px; padding: 4px 12px; font-weight: 700; font-size: 16px; margin-right: 12px; letter-spacing: .02em; }
+    .tag { display: inline-block; border-radius: 6px; padding: 1px 8px; font-size: 12px; font-weight: 600; vertical-align: middle; }
+    .tag-info { background: #dbeafe; color: #1e40af; }
+    .tag-inst { background: #fee2e2; color: #991b1b; }
+    .num { display: inline-flex; width: 26px; height: 26px; border-radius: 999px; background: #0f172a; color: #fff; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; margin-right: 8px; flex: none; }
+    pre.cheat { background: #0f172a; color: #e2e8f0; border-radius: 10px; padding: 12px 14px; font-size: 11px; line-height: 1.5; white-space: pre-wrap; overflow: hidden; margin: 0; }
+    .fig { height: 100%; display: flex; align-items: center; justify-content: center; }
+    .fig svg { width: 100%; height: 100%; }
+    @media print { body { background: #fff; } .slide { break-inside: avoid; page-break-after: always; margin: 0; box-shadow: none; border-radius: 0; } }
+  </style>
+</head>
+<body class="font-sans text-slate-800">
+<div class="slide justify-center items-center text-center" data-n="1" data-total="16">
+
+  <p class="text-lg text-slate-500 mb-4">社内ワークショップ　Day 2（30分・全部ライブ）</p>
+  <h1 class="text-5xl font-bold leading-tight mb-6">事例カタログを、AIから引けるようにする</h1>
+  <p class="text-2xl text-slate-700 mb-10">Jira に同期し、自作MCP で AI の入口を作る</p>
+  <p class="text-base text-slate-500">yatta47 ／ 2026-09</p>
+
+</div>
+<div class="slide " data-n="2" data-total="16">
+
+  <h2 class="text-3xl font-bold mb-5">今日やること</h2>
+  <div class="bg-slate-900 text-white rounded-xl px-8 py-7 text-3xl font-semibold leading-relaxed mb-6">
+    Day 1 で作ったカタログを Jira に載せて、<br>AIとの会話から事例を引けるようにする
+  </div>
+  <div class="border rounded-xl p-5 text-base flex-1">
+    <p class="text-xs text-slate-500 mb-2">なぜ Jira か</p>
+    <p class="leading-relaxed">手元の PostgreSQL は自分しか見られない。事例を<strong>他の人も見られて、起票もできる場所</strong>に置きたい。Jira は「ローカルのものをグローバルからアクセスできるようにしただけ」の器で、権限と監査が乗り、手元が消えても残る。</p>
+    <p class="leading-relaxed mt-3">最後に Cursor / Claude Code から「経理で請求書処理に困っている。近い事例ある？」と聞くと、Jira の事例が返る。</p>
+  </div>
+
+</div>
+<div class="slide " data-n="3" data-total="16">
+
+  <h2 class="text-3xl font-bold mb-1">全体アーキテクチャ</h2>
+  <p class="text-slate-500 mb-2">Day 1 の構成に、Jira と、そこへつなぐ2つの部品を足す</p>
+  <div class="flex-1 min-h-0 fig">
+<svg viewBox="0 0 1120 560" style="font-family:'Noto Sans JP',system-ui,sans-serif" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="ah" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,5 L0,10 z" fill="#64748b"/>
+    </marker>
+  </defs>
+  <rect x="10" y="14" width="1100" height="420" rx="14" fill="#fafafa" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="8 6"/>
+  <text x="26" y="40" font-size="15" fill="#64748b" font-weight="700">Local PC</text>
+  <rect x="170" y="56" width="920" height="360" rx="12" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="186" y="80" font-size="14" fill="#64748b" font-weight="700">Docker Desktop</text>
+  <rect x="190" y="96" width="520" height="300" rx="12" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="206" y="120" font-size="14" fill="#64748b" font-weight="700">Development VM（Cursor / Claude Code が動く場所）</text>
+
+  <g stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#ah)">
+    <path d="M140,175 L208,175" opacity="1.0"/>
+    <path d="M310,138 L310,100 L890,100 L890,136" opacity="1.0"/>
+    <path d="M140,330 L208,330" opacity="1.0"/>
+    <path d="M350,330 L378,330" opacity="1.0"/>
+    <path d="M500,330 L520,330 L520,175 L538,175" opacity="1.0"/>
+    <path d="M690,175 L778,175" opacity="1.0"/>
+    <path d="M890,214 L890,288" opacity="1.0"/>
+    <path d="M890,362 L890,464" opacity="1.0"/>
+    <path d="M615,332 L615,494 L776,494" opacity="1.0"/>
+  </g>
+  <text x="600" y="93" font-size="12" fill="#64748b" text-anchor="middle" opacity="1.0">SQL</text>
+  <text x="734" y="166" font-size="12" fill="#64748b" text-anchor="middle" opacity="1.0">MCP</text>
+  <text x="905" y="256" font-size="12" fill="#64748b" text-anchor="start" opacity="1.0">片方向・冪等</text>
+  <text x="700" y="486" font-size="12" fill="#64748b" text-anchor="middle" opacity="1.0">読むだけ（API token）</text>
+  <g opacity="1.0">
+    <rect x="30" y="140" width="110" height="70" rx="10" style="fill:#ffffff;stroke:#94a3b8;stroke-width:2"/>
+    <text x="85.0" y="180.0" font-size="15" text-anchor="middle" font-weight="700">Web Browser</text>
+  </g>
+  <g opacity="1.0">
+    <rect x="30" y="300" width="110" height="60" rx="10" style="fill:#ffffff;stroke:#94a3b8;stroke-width:2"/>
+    <text x="85.0" y="326.0" font-size="15" text-anchor="middle" font-weight="700">記事URL</text>
+    <text x="85.0" y="346.0" font-size="12" text-anchor="middle" fill="#64748b">AWS導入事例など</text>
+  </g>
+  <g opacity="1.0">
+    <rect x="210" y="140" width="200" height="70" rx="10" style="fill:#ffffff;stroke:#94a3b8;stroke-width:2"/>
+    <text x="310.0" y="171.0" font-size="15" text-anchor="middle" font-weight="700">Web画面</text>
+    <text x="310.0" y="191.0" font-size="12" text-anchor="middle" fill="#64748b">Frontend + Backend</text>
+  </g>
+  <g opacity="1.0">
+    <rect x="210" y="300" width="140" height="60" rx="10" style="fill:#ffffff;stroke:#94a3b8;stroke-width:2"/>
+    <text x="280.0" y="326.0" font-size="15" text-anchor="middle" font-weight="700">SKILL</text>
+    <text x="280.0" y="346.0" font-size="12" text-anchor="middle" fill="#64748b">URL → カード</text>
+  </g>
+  <g opacity="1.0">
+    <rect x="380" y="300" width="120" height="60" rx="10" style="fill:#ffffff;stroke:#94a3b8;stroke-width:2"/>
+    <text x="440.0" y="326.0" font-size="15" text-anchor="middle" font-weight="700">Catalog</text>
+    <text x="440.0" y="346.0" font-size="12" text-anchor="middle" fill="#64748b">JSON 48件</text>
+  </g>
+  <g opacity="1.0">
+    <rect x="540" y="140" width="150" height="70" rx="10" style="fill:#ffffff;stroke:#94a3b8;stroke-width:2"/>
+    <text x="615.0" y="171.0" font-size="15" text-anchor="middle" font-weight="700">PostgreSQL MCP</text>
+    <text x="615.0" y="191.0" font-size="12" text-anchor="middle" fill="#64748b">既製品</text>
+  </g>
+  <g opacity="1.0">
+    <rect x="780" y="140" width="220" height="74" rx="10" style="fill:#f8fafc;stroke:#94a3b8;stroke-width:2"/>
+    <text x="890.0" y="173.0" font-size="15" text-anchor="middle" font-weight="700">PostgreSQL</text>
+    <text x="890.0" y="193.0" font-size="12" text-anchor="middle" fill="#64748b">cases（＋pgvector, AGE）</text>
+  </g>
+  <g opacity="1.0">
+    <rect x="540" y="262" width="150" height="70" rx="10" style="fill:#ffffff;stroke:#94a3b8;stroke-width:2"/>
+    <text x="615.0" y="293.0" font-size="15" text-anchor="middle" font-weight="700">自作MCP</text>
+    <text x="615.0" y="313.0" font-size="12" text-anchor="middle" fill="#64748b">読み取り3ツール</text>
+  </g>
+  <g opacity="1.0">
+    <rect x="780" y="290" width="220" height="72" rx="10" style="fill:#ffffff;stroke:#94a3b8;stroke-width:2"/>
+    <text x="890.0" y="322.0" font-size="15" text-anchor="middle" font-weight="700">sync application</text>
+    <text x="890.0" y="342.0" font-size="12" text-anchor="middle" fill="#64748b">バッチ、LLMなし</text>
+  </g>
+  <g opacity="1.0">
+    <path d="M780,478 a110.0,12 0 0,1 220,0 v46 a110.0,12 0 0,1 -220,0 z" style="fill:#f8fafc;stroke:#94a3b8;stroke-width:2"/>
+    <path d="M780,478 a110.0,12 0 0,0 220,0" fill="none" stroke="#94a3b8" stroke-width="2"/>
+    <text x="890.0" y="512" font-size="16" text-anchor="middle" font-weight="700">Jira</text>
+    <text x="890.0" y="550" font-size="12" text-anchor="middle" fill="#64748b">台帳。他の人もフォームで起票できる</text>
+  </g>
+</svg></div>
+  
+
+</div>
+<div class="slide " data-n="4" data-total="16">
+
+  <h2 class="text-3xl font-bold mb-1">AIに作らせる部分</h2>
+  <p class="text-slate-500 mb-2">今日作るのは sync application と 自作MCP の2つ</p>
+  <div class="flex-1 min-h-0 fig">
+<svg viewBox="0 0 1120 560" style="font-family:'Noto Sans JP',system-ui,sans-serif" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="ah" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,5 L0,10 z" fill="#64748b"/>
+    </marker>
+  </defs>
+  <rect x="10" y="14" width="1100" height="420" rx="14" fill="#fafafa" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="8 6"/>
+  <text x="26" y="40" font-size="15" fill="#64748b" font-weight="700">Local PC</text>
+  <rect x="170" y="56" width="920" height="360" rx="12" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="186" y="80" font-size="14" fill="#64748b" font-weight="700">Docker Desktop</text>
+  <rect x="190" y="96" width="520" height="300" rx="12" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="206" y="120" font-size="14" fill="#64748b" font-weight="700">Development VM（Cursor / Claude Code が動く場所）</text>
+
+  <g stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#ah)">
+    <path d="M140,175 L208,175" opacity="1.0"/>
+    <path d="M310,138 L310,100 L890,100 L890,136" opacity="1.0"/>
+    <path d="M140,330 L208,330" opacity="1.0"/>
+    <path d="M350,330 L378,330" opacity="1.0"/>
+    <path d="M500,330 L520,330 L520,175 L538,175" opacity="1.0"/>
+    <path d="M690,175 L778,175" opacity="1.0"/>
+    <path d="M890,214 L890,288" opacity="1.0"/>
+    <path d="M890,362 L890,464" opacity="1.0"/>
+    <path d="M615,332 L615,494 L776,494" opacity="1.0"/>
+  </g>
+  <text x="600" y="93" font-size="12" fill="#64748b" text-anchor="middle" opacity="1.0">SQL</text>
+  <text x="734" y="166" font-size="12" fill="#64748b" text-anchor="middle" opacity="1.0">MCP</text>
+  <text x="905" y="256" font-size="12" fill="#64748b" text-anchor="start" opacity="1.0">片方向・冪等</text>
+  <text x="700" y="486" font-size="12" fill="#64748b" text-anchor="middle" opacity="1.0">読むだけ（API token）</text>
+  <g opacity="1.0">
+    <rect x="30" y="140" width="110" height="70" rx="10" style="fill:#ffffff;stroke:#94a3b8;stroke-width:2"/>
+    <text x="85.0" y="180.0" font-size="15" text-anchor="middle" font-weight="700">Web Browser</text>
+  </g>
+  <g opacity="1.0">
+    <rect x="30" y="300" width="110" height="60" rx="10" style="fill:#ffffff;stroke:#94a3b8;stroke-width:2"/>
+    <text x="85.0" y="326.0" font-size="15" text-anchor="middle" font-weight="700">記事URL</text>
+    <text x="85.0" y="346.0" font-size="12" text-anchor="middle" fill="#64748b">AWS導入事例など</text>
+  </g>
+  <g opacity="1.0">
+    <rect x="210" y="140" width="200" height="70" rx="10" style="fill:#fff4d6;stroke:#f59e0b;stroke-width:2.5"/>
+    <text x="310.0" y="171.0" font-size="15" text-anchor="middle" font-weight="700">Web画面</text>
+    <text x="310.0" y="191.0" font-size="12" text-anchor="middle" fill="#92400e">STEP 3　Frontend + Backend</text>
+  </g>
+  <g opacity="1.0">
+    <rect x="210" y="300" width="140" height="60" rx="10" style="fill:#fff4d6;stroke:#f59e0b;stroke-width:2.5"/>
+    <text x="280.0" y="326.0" font-size="15" text-anchor="middle" font-weight="700">SKILL</text>
+    <text x="280.0" y="346.0" font-size="12" text-anchor="middle" fill="#92400e">STEP 1　URL → カード</text>
+  </g>
+  <g opacity="1.0">
+    <rect x="380" y="300" width="120" height="60" rx="10" style="fill:#ffffff;stroke:#94a3b8;stroke-width:2"/>
+    <text x="440.0" y="326.0" font-size="15" text-anchor="middle" font-weight="700">Catalog</text>
+    <text x="440.0" y="346.0" font-size="12" text-anchor="middle" fill="#64748b">JSON 48件</text>
+  </g>
+  <g opacity="1.0">
+    <rect x="540" y="140" width="150" height="70" rx="10" style="fill:#ffffff;stroke:#94a3b8;stroke-width:2"/>
+    <text x="615.0" y="171.0" font-size="15" text-anchor="middle" font-weight="700">PostgreSQL MCP</text>
+    <text x="615.0" y="191.0" font-size="12" text-anchor="middle" fill="#64748b">STEP 2　既製品</text>
+  </g>
+  <g opacity="1.0">
+    <rect x="780" y="140" width="220" height="74" rx="10" style="fill:#f8fafc;stroke:#94a3b8;stroke-width:2"/>
+    <text x="890.0" y="173.0" font-size="15" text-anchor="middle" font-weight="700">PostgreSQL</text>
+    <text x="890.0" y="193.0" font-size="12" text-anchor="middle" fill="#64748b">STEP 4　cases（＋pgvector, AGE）</text>
+  </g>
+  <g opacity="1.0">
+    <rect x="540" y="262" width="150" height="70" rx="10" style="fill:#fff4d6;stroke:#f59e0b;stroke-width:2.5"/>
+    <text x="615.0" y="293.0" font-size="15" text-anchor="middle" font-weight="700">自作MCP</text>
+    <text x="615.0" y="313.0" font-size="12" text-anchor="middle" fill="#92400e">STEP 6　読み取り3ツール</text>
+  </g>
+  <g opacity="1.0">
+    <rect x="780" y="290" width="220" height="72" rx="10" style="fill:#fff4d6;stroke:#f59e0b;stroke-width:2.5"/>
+    <text x="890.0" y="322.0" font-size="15" text-anchor="middle" font-weight="700">sync application</text>
+    <text x="890.0" y="342.0" font-size="12" text-anchor="middle" fill="#92400e">STEP 5　バッチ、LLMなし</text>
+  </g>
+  <g opacity="1.0">
+    <path d="M780,478 a110.0,12 0 0,1 220,0 v46 a110.0,12 0 0,1 -220,0 z" style="fill:#f8fafc;stroke:#94a3b8;stroke-width:2"/>
+    <path d="M780,478 a110.0,12 0 0,0 220,0" fill="none" stroke="#94a3b8" stroke-width="2"/>
+    <text x="890.0" y="512" font-size="16" text-anchor="middle" font-weight="700">Jira</text>
+    <text x="890.0" y="550" font-size="12" text-anchor="middle" fill="#64748b">台帳。他の人もフォームで起票できる</text>
+  </g>
+  <rect x="26" y="512" width="18" height="14" rx="3" style="fill:#fff4d6;stroke:#f59e0b;stroke-width:2.5"/>
+  <text x="50" y="524" font-size="13" fill="#334155">AIに作らせる部品</text>
+  <rect x="26" y="538" width="18" height="14" rx="3" style="fill:#ffffff;stroke:#94a3b8;stroke-width:2"/>
+  <text x="50" y="550" font-size="13" fill="#334155">既製品・データ</text>
+</svg></div>
+  
+
+</div>
+<div class="slide " data-n="5" data-total="16">
+
+  <div class="flex items-center mb-2"><span class="step">STEP 5</span><h2 class="text-3xl font-bold">Jiraへ同期する</h2></div>
+  <p class="text-xl font-bold border-l-4 border-slate-800 pl-4 mb-4"><span class="text-xs font-normal text-slate-500 mr-3">やりたいこと</span>手元のDBにある事例を、他の人も見られて起票もできる場所（Jira）に載せたい</p>
+  <div class="grid grid-cols-12 gap-5 flex-1 min-h-0">
+    <div class="col-span-3 border rounded-xl p-4 text-sm flex flex-col">
+      <p class="text-xs text-slate-500 mb-2">ここでやること</p>
+      <ul class="list-disc pl-5 space-y-2 text-slate-800"><li>AIに <strong>同期スクリプト</strong>（PostgreSQL → Jira、挿入のみ、冪等）を書かせる</li><li>実行はバックグラウンドで。48件が Jira の事例プロジェクトに起票される</li><li>同期の実行にLLMは関わらない。判断のいらない処理はバッチに置く</li><li>Jira 側のフィールドIDの対応表は事前に用意してあり、AIに渡す</li></ul>
+      <p class="mt-auto pt-3 text-xs text-slate-500">片方向。双方向にすると正本が2つになる</p>
+    </div>
+    <div class="col-span-9 border rounded-xl p-2 min-h-0 flex flex-col">
+      <p class="text-xs text-slate-500 mb-1">全体のどこか</p>
+      <div class="flex-1 min-h-0 fig">
+<svg viewBox="0 0 1120 560" style="font-family:'Noto Sans JP',system-ui,sans-serif" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="ah" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,5 L0,10 z" fill="#64748b"/>
+    </marker>
+  </defs>
+  <rect x="10" y="14" width="1100" height="420" rx="14" fill="#fafafa" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="8 6"/>
+  <text x="26" y="40" font-size="15" fill="#64748b" font-weight="700">Local PC</text>
+  <rect x="170" y="56" width="920" height="360" rx="12" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="186" y="80" font-size="14" fill="#64748b" font-weight="700">Docker Desktop</text>
+  <rect x="190" y="96" width="520" height="300" rx="12" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="206" y="120" font-size="14" fill="#64748b" font-weight="700">Development VM（Cursor / Claude Code が動く場所）</text>
+
+  <g stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#ah)">
+    <path d="M140,175 L208,175" opacity="0.28"/>
+    <path d="M310,138 L310,100 L890,100 L890,136" opacity="0.28"/>
+    <path d="M140,330 L208,330" opacity="0.28"/>
+    <path d="M350,330 L378,330" opacity="0.28"/>
+    <path d="M500,330 L520,330 L520,175 L538,175" opacity="0.28"/>
+    <path d="M690,175 L778,175" opacity="0.28"/>
+    <path d="M890,214 L890,288" opacity="1.0"/>
+    <path d="M890,362 L890,464" opacity="1.0"/>
+    <path d="M615,332 L615,494 L776,494" opacity="0.28"/>
+  </g>
+  <text x="600" y="93" font-size="12" fill="#64748b" text-anchor="middle" opacity="0.28">SQL</text>
+  <text x="734" y="166" font-size="12" fill="#64748b" text-anchor="middle" opacity="0.28">MCP</text>
+  <text x="905" y="256" font-size="12" fill="#64748b" text-anchor="start" opacity="1.0">片方向・冪等</text>
+  <text x="700" y="486" font-size="12" fill="#64748b" text-anchor="middle" opacity="0.28">読むだけ（API token）</text>
+  <g opacity="0.28">
+    <rect x="30" y="140" width="110" height="70" rx="10" style="fill:#ffffff;stroke:#94a3b8;stroke-width:2"/>
+    <text x="85.0" y="180.0" font-size="15" text-anchor="middle" font-weight="700">Web Browser</text>
+  </g>
+  <g opacity="0.28">
+    <rect x="30" y="300" width="110" height="60" rx="10" style="fill:#ffffff;stroke:#94a3b8;stroke-width:2"/>
+    <text x="85.0" y="326.0" font-size="15" text-anchor="middle" font-weight="700">記事URL</text>
+    <text x="85.0" y="346.0" font-size="12" text-anchor="middle" fill="#64748b">AWS導入事例など</text>
+  </g>
+  <g opacity="0.28">
+    <rect x="210" y="140" width="200" height="70" rx="10" style="fill:#fff4d6;stroke:#f59e0b;stroke-width:2.5"/>
+    <text x="310.0" y="171.0" font-size="15" text-anchor="middle" font-weight="700">Web画面</text>
+    <text x="310.0" y="191.0" font-size="12" text-anchor="middle" fill="#92400e">STEP 3　Frontend + Backend</text>
+  </g>
+  <g opacity="0.28">
+    <rect x="210" y="300" width="140" height="60" rx="10" style="fill:#fff4d6;stroke:#f59e0b;stroke-width:2.5"/>
+    <text x="280.0" y="326.0" font-size="15" text-anchor="middle" font-weight="700">SKILL</text>
+    <text x="280.0" y="346.0" font-size="12" text-anchor="middle" fill="#92400e">STEP 1　URL → カード</text>
+  </g>
+  <g opacity="0.28">
+    <rect x="380" y="300" width="120" height="60" rx="10" style="fill:#ffffff;stroke:#94a3b8;stroke-width:2"/>
+    <text x="440.0" y="326.0" font-size="15" text-anchor="middle" font-weight="700">Catalog</text>
+    <text x="440.0" y="346.0" font-size="12" text-anchor="middle" fill="#64748b">JSON 48件</text>
+  </g>
+  <g opacity="0.28">
+    <rect x="540" y="140" width="150" height="70" rx="10" style="fill:#ffffff;stroke:#94a3b8;stroke-width:2"/>
+    <text x="615.0" y="171.0" font-size="15" text-anchor="middle" font-weight="700">PostgreSQL MCP</text>
+    <text x="615.0" y="191.0" font-size="12" text-anchor="middle" fill="#64748b">STEP 2　既製品</text>
+  </g>
+  <g opacity="1.0">
+    <rect x="780" y="140" width="220" height="74" rx="10" style="fill:#f8fafc;stroke:#94a3b8;stroke-width:2"/>
+    <text x="890.0" y="173.0" font-size="15" text-anchor="middle" font-weight="700">PostgreSQL</text>
+    <text x="890.0" y="193.0" font-size="12" text-anchor="middle" fill="#64748b">STEP 4　cases（＋pgvector, AGE）</text>
+  </g>
+  <g opacity="0.28">
+    <rect x="540" y="262" width="150" height="70" rx="10" style="fill:#fff4d6;stroke:#f59e0b;stroke-width:2.5"/>
+    <text x="615.0" y="293.0" font-size="15" text-anchor="middle" font-weight="700">自作MCP</text>
+    <text x="615.0" y="313.0" font-size="12" text-anchor="middle" fill="#92400e">STEP 6　読み取り3ツール</text>
+  </g>
+  <g opacity="1.0">
+    <rect x="780" y="290" width="220" height="72" rx="10" style="fill:#fff4d6;stroke:#f59e0b;stroke-width:2.5"/>
+    <text x="890.0" y="322.0" font-size="15" text-anchor="middle" font-weight="700">sync application</text>
+    <text x="890.0" y="342.0" font-size="12" text-anchor="middle" fill="#92400e">STEP 5　バッチ、LLMなし</text>
+  </g>
+  <g opacity="1.0">
+    <path d="M780,478 a110.0,12 0 0,1 220,0 v46 a110.0,12 0 0,1 -220,0 z" style="fill:#f8fafc;stroke:#94a3b8;stroke-width:2"/>
+    <path d="M780,478 a110.0,12 0 0,0 220,0" fill="none" stroke="#94a3b8" stroke-width="2"/>
+    <text x="890.0" y="512" font-size="16" text-anchor="middle" font-weight="700">Jira</text>
+    <text x="890.0" y="550" font-size="12" text-anchor="middle" fill="#64748b">台帳。他の人もフォームで起票できる</text>
+  </g>
+  <rect x="764" y="124" width="252" height="446" rx="14" fill="none" stroke="#dc2626" stroke-width="3" stroke-dasharray="10 7"/>
+  <rect x="26" y="512" width="18" height="14" rx="3" style="fill:#fff4d6;stroke:#f59e0b;stroke-width:2.5"/>
+  <text x="50" y="524" font-size="13" fill="#334155">AIに作らせる部品</text>
+  <rect x="26" y="538" width="18" height="14" rx="3" style="fill:#ffffff;stroke:#94a3b8;stroke-width:2"/>
+  <text x="50" y="550" font-size="13" fill="#334155">既製品・データ</text>
+</svg></div>
+    </div>
+  </div>
+
+</div>
+<div class="slide " data-n="6" data-total="16">
+
+  <div class="flex items-center mb-2"><span class="tips">TIPS</span><span class="tips-step">STEP 5</span><h2 class="text-3xl font-bold">判断のいらない処理はバッチに置く</h2></div>
+  <div class="bg-emerald-50 border-l-4 border-emerald-700 text-slate-900 rounded-r-xl px-6 py-3 text-xl font-semibold mb-4">「DB の行を Jira に写す」に判断は無い。LLM を通さず、普通のコードで決定的にやる</div>
+  <div class="grid grid-cols-3 gap-5 flex-1 min-h-0 text-base"><div class="border rounded-xl p-5 min-h-0"><p class="text-sm text-slate-500 mb-3">バッチとは</p><ul class="list-disc pl-5 space-y-3 text-slate-800 leading-relaxed"><li>人の操作なしに、まとめて一方向に処理するプログラム</li><li>入力（cases テーブル）→ 変換（対応表）→ 出力（Jira の起票）</li><li>同じ入力なら同じ結果。再実行しても壊れない（冪等）</li></ul></div><div class="border rounded-xl p-5 min-h-0"><p class="text-sm text-slate-500 mb-3">なぜ LLM を使わないか</p><ul class="list-disc pl-5 space-y-3 text-slate-800 leading-relaxed"><li>写すだけの処理に「解釈」が入ると、写し間違いの原因になる</li><li>48件で毎回 LLM を呼ぶと遅く、費用もかかる</li><li>LLM の出番は「読んで判断する」STEP 6 に取っておく</li></ul></div><div class="border rounded-xl p-5 min-h-0"><p class="text-sm text-slate-500 mb-3">設計の型</p><ul class="list-disc pl-5 space-y-3 text-slate-800 leading-relaxed"><li>片方向: PostgreSQL → Jira。逆はやらない。正本を1つにする</li><li>挿入のみ: 同じ id があれば何もしない。更新・削除はしない</li><li>1件ごとに結果を1行出し、最後に件数。人が後から追える</li></ul></div></div>
+  <p class="mt-3 text-base text-slate-600">AIに書かせるのは「同期スクリプト」。実行時に AI はいない</p>
+
+</div>
+<div class="slide " data-n="7" data-total="16">
+
+  <div class="flex items-center mb-2"><span class="tips">TIPS</span><span class="tips-step">STEP 5</span><h2 class="text-3xl font-bold">API トークンは「期限と範囲のある鍵」</h2></div>
+  <div class="bg-emerald-50 border-l-4 border-emerald-700 text-slate-900 rounded-r-xl px-6 py-3 text-xl font-semibold mb-4">Jira を外から操作する鍵。読める範囲と期限を絞って発行し、コードには書かない</div>
+  <div class="grid grid-cols-3 gap-5 flex-1 min-h-0 text-base"><div class="border rounded-xl p-5 min-h-0"><p class="text-sm text-slate-500 mb-3">Atlassian の場合</p><ul class="list-disc pl-5 space-y-3 text-slate-800 leading-relaxed"><li>スコープ付き API トークン: <code>read:jira-work</code> のように範囲を指定する</li><li>期限は最長1年。切れたら作り直す</li><li>スコープ付きは <code>api.atlassian.com/ex/jira/{cloudId}/</code> 経由でしか使えない</li></ul></div><div class="border rounded-xl p-5 min-h-0"><p class="text-sm text-slate-500 mb-3">置き場所</p><ul class="list-disc pl-5 space-y-3 text-slate-800 leading-relaxed"><li><code>.env</code> に置き、<code>.gitignore</code> で除外する</li><li>コード側は環境変数から読む。ファイルに直書きしない</li><li>AIに指示文を渡すときも、トークンの値は渡さない（変数名だけ）</li></ul></div><div class="border rounded-xl p-5 min-h-0"><p class="text-sm text-slate-500 mb-3">注意</p><ul class="list-disc pl-5 space-y-3 text-slate-800 leading-relaxed"><li>個人のトークンで動かすと、その人の権限で動く。共有用は別に作る</li><li>書き込みトークンは同期にだけ渡す。MCP（STEP 6）には読み取り用を渡す</li><li>漏れたらすぐ失効。失効できる鍵を使うのはそのため</li></ul></div></div>
+  
+
+</div>
+<div class="slide " data-n="8" data-total="16">
+
+  <div class="flex items-center mb-2"><span class="step">STEP 6</span><h2 class="text-3xl font-bold">MCPで事例をAIから引く</h2></div>
+  <p class="text-xl font-bold border-l-4 border-slate-800 pl-4 mb-4"><span class="text-xs font-normal text-slate-500 mr-3">やりたいこと</span>Cursor / Claude Code との会話の中で、Jira の事例だけを引いて答えてほしい</p>
+  <div class="grid grid-cols-12 gap-5 flex-1 min-h-0">
+    <div class="col-span-3 border rounded-xl p-4 text-sm flex flex-col">
+      <p class="text-xs text-slate-500 mb-2">ここでやること</p>
+      <ul class="list-disc pl-5 space-y-2 text-slate-800"><li>AIに <strong>自作MCPサーバ</strong>（1ファイル、読み取り3ツール）を書かせる</li><li>読める範囲は事例プロジェクトだけ。書き込みツールは無い</li><li>Cursor に登録し、「経理で請求書処理に困っている。近い事例ある？」と聞く</li><li>MCPが候補を渡し、どれが近いかはLLMが読んで判断する</li><li>コードを1画面だけ見せる。「読める範囲が1行、ツールが3つ、対応表が1つ」</li></ul>
+      
+    </div>
+    <div class="col-span-9 border rounded-xl p-2 min-h-0 flex flex-col">
+      <p class="text-xs text-slate-500 mb-1">全体のどこか</p>
+      <div class="flex-1 min-h-0 fig">
+<svg viewBox="0 0 1120 560" style="font-family:'Noto Sans JP',system-ui,sans-serif" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="ah" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,5 L0,10 z" fill="#64748b"/>
+    </marker>
+  </defs>
+  <rect x="10" y="14" width="1100" height="420" rx="14" fill="#fafafa" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="8 6"/>
+  <text x="26" y="40" font-size="15" fill="#64748b" font-weight="700">Local PC</text>
+  <rect x="170" y="56" width="920" height="360" rx="12" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="186" y="80" font-size="14" fill="#64748b" font-weight="700">Docker Desktop</text>
+  <rect x="190" y="96" width="520" height="300" rx="12" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="206" y="120" font-size="14" fill="#64748b" font-weight="700">Development VM（Cursor / Claude Code が動く場所）</text>
+
+  <g stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#ah)">
+    <path d="M140,175 L208,175" opacity="0.28"/>
+    <path d="M310,138 L310,100 L890,100 L890,136" opacity="0.28"/>
+    <path d="M140,330 L208,330" opacity="0.28"/>
+    <path d="M350,330 L378,330" opacity="0.28"/>
+    <path d="M500,330 L520,330 L520,175 L538,175" opacity="0.28"/>
+    <path d="M690,175 L778,175" opacity="0.28"/>
+    <path d="M890,214 L890,288" opacity="0.28"/>
+    <path d="M890,362 L890,464" opacity="0.28"/>
+    <path d="M615,332 L615,494 L776,494" opacity="1.0"/>
+  </g>
+  <text x="600" y="93" font-size="12" fill="#64748b" text-anchor="middle" opacity="0.28">SQL</text>
+  <text x="734" y="166" font-size="12" fill="#64748b" text-anchor="middle" opacity="0.28">MCP</text>
+  <text x="905" y="256" font-size="12" fill="#64748b" text-anchor="start" opacity="0.28">片方向・冪等</text>
+  <text x="700" y="486" font-size="12" fill="#64748b" text-anchor="middle" opacity="1.0">読むだけ（API token）</text>
+  <g opacity="0.28">
+    <rect x="30" y="140" width="110" height="70" rx="10" style="fill:#ffffff;stroke:#94a3b8;stroke-width:2"/>
+    <text x="85.0" y="180.0" font-size="15" text-anchor="middle" font-weight="700">Web Browser</text>
+  </g>
+  <g opacity="0.28">
+    <rect x="30" y="300" width="110" height="60" rx="10" style="fill:#ffffff;stroke:#94a3b8;stroke-width:2"/>
+    <text x="85.0" y="326.0" font-size="15" text-anchor="middle" font-weight="700">記事URL</text>
+    <text x="85.0" y="346.0" font-size="12" text-anchor="middle" fill="#64748b">AWS導入事例など</text>
+  </g>
+  <g opacity="0.28">
+    <rect x="210" y="140" width="200" height="70" rx="10" style="fill:#fff4d6;stroke:#f59e0b;stroke-width:2.5"/>
+    <text x="310.0" y="171.0" font-size="15" text-anchor="middle" font-weight="700">Web画面</text>
+    <text x="310.0" y="191.0" font-size="12" text-anchor="middle" fill="#92400e">STEP 3　Frontend + Backend</text>
+  </g>
+  <g opacity="0.28">
+    <rect x="210" y="300" width="140" height="60" rx="10" style="fill:#fff4d6;stroke:#f59e0b;stroke-width:2.5"/>
+    <text x="280.0" y="326.0" font-size="15" text-anchor="middle" font-weight="700">SKILL</text>
+    <text x="280.0" y="346.0" font-size="12" text-anchor="middle" fill="#92400e">STEP 1　URL → カード</text>
+  </g>
+  <g opacity="0.28">
+    <rect x="380" y="300" width="120" height="60" rx="10" style="fill:#ffffff;stroke:#94a3b8;stroke-width:2"/>
+    <text x="440.0" y="326.0" font-size="15" text-anchor="middle" font-weight="700">Catalog</text>
+    <text x="440.0" y="346.0" font-size="12" text-anchor="middle" fill="#64748b">JSON 48件</text>
+  </g>
+  <g opacity="0.28">
+    <rect x="540" y="140" width="150" height="70" rx="10" style="fill:#ffffff;stroke:#94a3b8;stroke-width:2"/>
+    <text x="615.0" y="171.0" font-size="15" text-anchor="middle" font-weight="700">PostgreSQL MCP</text>
+    <text x="615.0" y="191.0" font-size="12" text-anchor="middle" fill="#64748b">STEP 2　既製品</text>
+  </g>
+  <g opacity="0.28">
+    <rect x="780" y="140" width="220" height="74" rx="10" style="fill:#f8fafc;stroke:#94a3b8;stroke-width:2"/>
+    <text x="890.0" y="173.0" font-size="15" text-anchor="middle" font-weight="700">PostgreSQL</text>
+    <text x="890.0" y="193.0" font-size="12" text-anchor="middle" fill="#64748b">STEP 4　cases（＋pgvector, AGE）</text>
+  </g>
+  <g opacity="1.0">
+    <rect x="540" y="262" width="150" height="70" rx="10" style="fill:#fff4d6;stroke:#f59e0b;stroke-width:2.5"/>
+    <text x="615.0" y="293.0" font-size="15" text-anchor="middle" font-weight="700">自作MCP</text>
+    <text x="615.0" y="313.0" font-size="12" text-anchor="middle" fill="#92400e">STEP 6　読み取り3ツール</text>
+  </g>
+  <g opacity="0.28">
+    <rect x="780" y="290" width="220" height="72" rx="10" style="fill:#fff4d6;stroke:#f59e0b;stroke-width:2.5"/>
+    <text x="890.0" y="322.0" font-size="15" text-anchor="middle" font-weight="700">sync application</text>
+    <text x="890.0" y="342.0" font-size="12" text-anchor="middle" fill="#92400e">STEP 5　バッチ、LLMなし</text>
+  </g>
+  <g opacity="1.0">
+    <path d="M780,478 a110.0,12 0 0,1 220,0 v46 a110.0,12 0 0,1 -220,0 z" style="fill:#f8fafc;stroke:#94a3b8;stroke-width:2"/>
+    <path d="M780,478 a110.0,12 0 0,0 220,0" fill="none" stroke="#94a3b8" stroke-width="2"/>
+    <text x="890.0" y="512" font-size="16" text-anchor="middle" font-weight="700">Jira</text>
+    <text x="890.0" y="550" font-size="12" text-anchor="middle" fill="#64748b">台帳。他の人もフォームで起票できる</text>
+  </g>
+  <rect x="524" y="246" width="492" height="324" rx="14" fill="none" stroke="#dc2626" stroke-width="3" stroke-dasharray="10 7"/>
+  <rect x="26" y="512" width="18" height="14" rx="3" style="fill:#fff4d6;stroke:#f59e0b;stroke-width:2.5"/>
+  <text x="50" y="524" font-size="13" fill="#334155">AIに作らせる部品</text>
+  <rect x="26" y="538" width="18" height="14" rx="3" style="fill:#ffffff;stroke:#94a3b8;stroke-width:2"/>
+  <text x="50" y="550" font-size="13" fill="#334155">既製品・データ</text>
+</svg></div>
+    </div>
+  </div>
+
+</div>
+<div class="slide " data-n="9" data-total="16">
+
+  <div class="flex items-center mb-2"><span class="tips">TIPS</span><span class="tips-step">STEP 6</span><h2 class="text-3xl font-bold">自作MCPは「関数 ＋ 説明文」でできる</h2></div>
+  <div class="bg-emerald-50 border-l-4 border-emerald-700 text-slate-900 rounded-r-xl px-6 py-3 text-xl font-semibold mb-4">MCP サーバの中身は、Python の関数に説明文を付けて並べたもの。AI はその説明文を読んで使い方を知る</div>
+  <div class="grid grid-cols-3 gap-5 flex-1 min-h-0 text-base"><div class="border rounded-xl p-5 min-h-0"><p class="text-sm text-slate-500 mb-3">作り方</p><ul class="list-disc pl-5 space-y-3 text-slate-800 leading-relaxed"><li>SDK（MCP Python SDK 2.x）で <code>MCPServer</code> を作り、関数に <code>@mcp.tool()</code> を付ける</li><li>関数名・引数名・docstring が、そのままAIに見える「ツールの説明書」になる</li><li>起動は標準入出力（stdio）。Cursor / Claude Code が子プロセスとして立ち上げる</li></ul></div><div class="border rounded-xl p-5 min-h-0"><p class="text-sm text-slate-500 mb-3">説明文が大事な理由</p><ul class="list-disc pl-5 space-y-3 text-slate-800 leading-relaxed"><li>AI はコードを読まず、説明文で「いつ呼ぶか」を決める</li><li>「困りごとの文章から候補を返す」と書けば、悩みの相談で呼ばれる</li><li>引数は事例の言葉にする（JQL ではなく「困りごと」）</li></ul></div><div class="border rounded-xl p-5 min-h-0"><p class="text-sm text-slate-500 mb-3">注意</p><ul class="list-disc pl-5 space-y-3 text-slate-800 leading-relaxed"><li>SDK の版で書き方が違う（1.x は FastMCP、2.x は MCPServer）。指示文に版を書く</li><li>ツールは少なく。3本あれば足りる。多いとAIが選び損ねる</li><li>登録は設定ファイルに1行。設定後は再起動が要る</li></ul></div></div>
+  <p class="mt-3 text-base text-slate-600">「正しい情報」の例: SDK の版。古い情報で書かせると動かないものが出てくる</p>
+
+</div>
+<div class="slide " data-n="10" data-total="16">
+
+  <div class="flex items-center mb-2"><span class="tips">TIPS</span><span class="tips-step">STEP 6</span><h2 class="text-3xl font-bold">ツールが取ってきて、LLM が選ぶ</h2></div>
+  <div class="bg-emerald-50 border-l-4 border-emerald-700 text-slate-900 rounded-r-xl px-6 py-3 text-xl font-semibold mb-4">自作MCP は候補を渡すだけ。「どれが近いか」は LLM が読んで判断する分業</div>
+  <div class="grid grid-cols-3 gap-5 flex-1 min-h-0 text-base"><div class="border rounded-xl p-5 min-h-0"><p class="text-sm text-slate-500 mb-3">役割分担</p><ul class="list-disc pl-5 space-y-3 text-slate-800 leading-relaxed"><li>MCP（ツール）: Jira から候補を取ってくる。決定的で速い</li><li>LLM: 候補を読み、相談内容に近いものを選び、理由を添えて答える</li><li>人: 相談を投げ、答えを読んで、事例に当たる</li></ul></div><div class="border rounded-xl p-5 min-h-0"><p class="text-sm text-slate-500 mb-3">なぜこの分担か</p><ul class="list-disc pl-5 space-y-3 text-slate-800 leading-relaxed"><li>Jira は意味検索も関連の辺も持っていない（Day 1 の PostgreSQL とは違う）</li><li>器に無い能力は、持っている側（LLM）に寄せる</li><li>候補が数十件なら、LLM が読んで選ぶ方が実装が軽い</li></ul></div><div class="border rounded-xl p-5 min-h-0"><p class="text-sm text-slate-500 mb-3">限界と次</p><ul class="list-disc pl-5 space-y-3 text-slate-800 leading-relaxed"><li>件数が増えると候補が文脈に入りきらない</li><li>その時は候補の絞り込みを Jira 側（JQL）か DB 側に戻す</li><li>「どこで似ているを判断するか」は、器の能力で決めればよい</li></ul></div></div>
+  
+
+</div>
+<div class="slide " data-n="11" data-total="16">
+
+  <div class="flex items-center mb-2"><span class="tips">TIPS</span><span class="tips-step">STEP 6</span><h2 class="text-3xl font-bold">汎用MCPと自作MCPの違い</h2></div>
+  <p class="text-slate-500 mb-5">コードで見える差。汎用（Confluence / Postgres MCP）は「本人が見られる全部」に届く</p>
+  <div class="grid grid-cols-5 gap-5 flex-1 text-sm">
+    <div class="col-span-3 bg-slate-900 text-slate-100 rounded-xl p-4 font-mono text-xs leading-relaxed">
+      <span class="text-amber-300">PROJECT_KEY = "AICASE"</span>   # 読める範囲はここだけ<br>
+      <span class="text-amber-300">FIELDS = {</span> "customfield_10042": "誰が、何に困っていたか", ... <span class="text-amber-300">}</span><br><br>
+      mcp = MCPServer("ai-case-catalog")   # MCP Python SDK 2.x<br><br>
+      @mcp.tool()<br>
+      def <span class="text-emerald-300">find_cases</span>(problem: str): ...        # 困りごとの文章から候補<br>
+      @mcp.tool()<br>
+      def <span class="text-emerald-300">list_hypothesis_cases</span>(): ...      # 効果がまだ仮説の事例<br>
+      @mcp.tool()<br>
+      def <span class="text-emerald-300">get_case</span>(key: str): ...            # 1件をカードの形で<br>
+    </div>
+    <div class="col-span-2 flex flex-col gap-3">
+      <div class="border rounded-lg p-3"><p class="font-bold">どこまで届くか</p><p class="text-slate-600">PROJECT_KEY 1行。汎用MCPにはこの行が存在しない</p></div>
+      <div class="border rounded-lg p-3"><p class="font-bold">何ができるか</p><p class="text-slate-600">ツール3本。引数は事例の言葉</p></div>
+      <div class="border rounded-lg p-3"><p class="font-bold">何ができないか</p><p class="text-slate-600">書き込みなし。汎用MCPは「できないこと」を示せない</p></div>
+      <div class="border rounded-lg p-3"><p class="font-bold">人が意味を付けた場所</p><p class="text-slate-600">FIELDS の対応表。AIに渡す前にやる仕事</p></div>
+    </div>
+  </div>
+
+</div>
+<div class="slide " data-n="12" data-total="16">
+
+  <div class="flex items-center mb-2"><span class="tips">TIPS</span><span class="tips-step">STEP 6</span><h2 class="text-3xl font-bold">ローカルとグローバル</h2></div>
+  <p class="text-slate-500 mb-6">同じカードに、同じ問いを、器の能力に応じて別の層で解く</p>
+  <table class="w-full text-base border-collapse">
+    <thead><tr class="bg-slate-100"><th class="p-3 text-left w-1/4"></th><th class="p-3 text-left">ローカル（Day 1）</th><th class="p-3 text-left">グローバル（Day 2）</th></tr></thead>
+    <tbody>
+      <tr class="border-b"><td class="p-3 font-bold">器</td><td class="p-3">PostgreSQL（＋pgvector、AGE）</td><td class="p-3">Jira</td></tr>
+      <tr class="border-b"><td class="p-3 font-bold">関連・類似を担う場所</td><td class="p-3">DB（決定的・速い・再現する）</td><td class="p-3">LLM（自作MCPが候補を渡し、LLMが読んで判断）</td></tr>
+      <tr class="border-b"><td class="p-3 font-bold">理由</td><td class="p-3">器が検索機構を持っている</td><td class="p-3">器が持っていないので、持っている側に寄せた</td></tr>
+      <tr><td class="p-3 font-bold">限界</td><td class="p-3">埋め込みモデルと辺の導出が要る</td><td class="p-3">件数が増えると候補が入りきらない。育ったらDB側へ戻す</td></tr>
+    </tbody>
+  </table>
+  <p class="mt-6 text-sm text-slate-500">Jira が正本になったら、Day 1 の Web画面は Confluence の Jira Issues マクロに置き換える</p>
+
+</div>
+<div class="slide " data-n="13" data-total="16">
+
+  <h2 class="text-3xl font-bold mb-2">まとめ: 2日間で伝えたかったこと</h2>
+  <p class="text-slate-600 mb-4 text-lg">雑に指示しても、作ってはくれる。ただし<strong>手直しが多くなる</strong></p>
+  <div class="bg-slate-900 text-white rounded-xl px-8 py-5 text-2xl font-semibold mb-6">
+    認識違いを減らすには<br>
+    <span class="text-amber-300">正しい情報（コンテキスト）</span> と <span class="text-rose-300">正しい指示（プロンプト）</span> が要る
+  </div>
+  <div class="grid grid-cols-2 gap-6 text-sm">
+    <div class="border-2 border-blue-200 rounded-xl p-4">
+      <p class="font-bold text-blue-800 mb-2"><span class="tag tag-info">コンテキスト</span>　人が用意する事実</p>
+      <ul class="list-disc pl-5 space-y-1 text-slate-700">
+        <li>事例カードのスキーマ（12項目）と困りごとの型、基盤名の辞書</li>
+        <li>テーブル名・列名・型、接続文字列</li>
+        <li>使うライブラリのバージョン</li>
+      </ul>
+    </div>
+    <div class="border-2 border-rose-200 rounded-xl p-4">
+      <p class="font-bold text-rose-800 mb-2"><span class="tag tag-inst">プロンプト</span>　設計判断を言葉にしたもの</p>
+      <ul class="list-disc pl-5 space-y-1 text-slate-700">
+        <li>記事に無いことを補わない</li>
+        <li>MCPだけで、まとめて、重複しても壊れないように</li>
+        <li>機能は3つ。書き込みは作らない。確認してから終わる</li>
+      </ul>
+    </div>
+  </div>
+  <p class="mt-auto text-sm text-slate-500">手直しの1回1回は「足りなかった情報」か「言っていなかった判断」。それを先に用意するのが人の仕事。今日の事前準備（スキーマ、辞書、指示文）がそのまま証拠</p>
+
+</div>
+<div class="slide " data-n="14" data-total="16">
+
+  <h2 class="text-3xl font-bold mb-1">…という形で説明しましたが</h2>
+  <p class="text-slate-600 mb-4 text-lg">今日の進め方は「見せるため」の形。実際に作るときは、<strong>仕様を先に固めて一気に作る</strong>のが主流になった（2026）</p>
+  <div class="grid grid-cols-2 gap-6 flex-1 min-h-0">
+    <div class="border rounded-xl p-5 flex flex-col">
+      <p class="font-bold text-lg mb-3">今日（見せるため）</p>
+      <div class="flex items-center gap-2 text-sm mb-4">
+        <span class="bg-slate-200 rounded px-3 py-2 font-semibold">STEP 1</span><span>→</span>
+        <span class="bg-slate-200 rounded px-3 py-2 font-semibold">STEP 2</span><span>→</span>
+        <span class="bg-slate-200 rounded px-3 py-2 font-semibold">STEP 3</span><span>→</span>
+        <span class="bg-slate-200 rounded px-3 py-2 font-semibold">…</span>
+      </div>
+      <ul class="list-disc pl-5 space-y-2 text-base text-slate-800">
+        <li>1つずつ積み上げる。前の STEP の結果を見てから次の指示を書く</li>
+        <li>エージェントは1つ。会話も1本。ループを回すのは人</li>
+        <li>失敗したら「何が足りなかったか」を指して直す</li>
+        <li>向く場面: 仕様がまだ無い探索、初めて作るもの</li>
+      </ul>
+    </div>
+    <div class="border-2 border-orange-300 rounded-xl p-5 flex flex-col">
+      <p class="font-bold text-lg mb-3 text-orange-800">実際（作るため）: 仕様先行 ＋ 並列</p>
+      <div class="flex items-center gap-2 text-sm mb-4">
+        <span class="bg-orange-100 rounded px-3 py-2 font-semibold">spec → plan → tasks</span><span>→</span>
+        <div class="flex flex-col gap-1">
+          <span class="bg-orange-100 rounded px-3 py-1 font-semibold">SKILL</span>
+          <span class="bg-orange-100 rounded px-3 py-1 font-semibold">画面</span>
+          <span class="bg-orange-100 rounded px-3 py-1 font-semibold">導出処理・MCP</span>
+        </div><span>→</span>
+        <span class="bg-orange-100 rounded px-3 py-2 font-semibold">検査・統合</span>
+      </div>
+      <ul class="list-disc pl-5 space-y-2 text-base text-slate-800">
+        <li>仕様先行（spec-driven）: スキーマ・機能・やらないこと・確認方法を先に書き、計画とタスクに割ってから書かせる。Spec Kit / Kiro / plan mode はみな同じ3段</li>
+        <li>並列: 部品ごとに別のエージェント、別の作業コピー（git worktree）。効くのは<strong>部品が独立し、機械的に検査できるとき</strong>だけ。トークンは体数以上に増える</li>
+        <li>人は仕様と検査の設計に時間を使う。途中の会話は見ない</li>
+      </ul>
+    </div>
+  </div>
+  <div class="mt-3 border-l-4 border-emerald-700 bg-emerald-50 rounded-r-xl px-5 py-2 text-sm text-slate-800">
+    <span class="font-bold mr-2">補足</span>仕様先行＋並列にすると効きが増す2つの設計。<strong>ハーネスエンジニアリング</strong>（モデルの周りに置く型と検査: CLAUDE.md、SKILL、MCP、検査スクリプト）と<strong>ループエンジニアリング</strong>（作る → 検査 → 直す の回し方: 誰が回すか、何で止まるか）。Day 2 で詳しく
+  </div>
+  <div class="mt-3 bg-slate-900 text-white rounded-xl px-6 py-4 text-lg font-semibold">
+    一つずつ直す型は「速く感じるが手直しに時間を食う」（METR の比較試験: 19%遅いのに20%速く感じた）。並列にしても変わらないのは、最初に渡す <span class="text-amber-300">情報</span> と <span class="text-rose-300">指示</span> の質
+  </div>
+
+</div>
+<div class="slide " data-n="15" data-total="16">
+
+  <h2 class="text-3xl font-bold mb-1">ハーネスエンジニアリングと、ループエンジニアリング</h2>
+  <p class="text-slate-600 mb-4 text-lg">「仕様先行で一気に」を成り立たせる2つの設計。どちらも今日の中に実物がある</p>
+  <div class="grid grid-cols-2 gap-6 flex-1 min-h-0">
+    <div class="border-2 border-blue-200 rounded-xl p-5 flex flex-col">
+      <p class="font-bold text-lg mb-2 text-blue-800">ハーネスエンジニアリング</p>
+      <p class="text-sm text-slate-600 mb-3">モデルの<strong>周り</strong>を設計する。「そこそこのモデル＋良いハーネス」は「最強のモデル＋悪いハーネス」に勝つ</p>
+      <ul class="list-disc pl-5 space-y-2 text-base text-slate-800">
+        <li><strong>事前に効くもの（guides）</strong>: CLAUDE.md / AGENTS.md、SKILL、MCP、hooks、権限（渡す鍵）</li>
+        <li><strong>事後に効くもの（sensors）</strong>: テスト、lint、検査スクリプト、CI。外れたら自動で戻す</li>
+        <li><strong>育て方（ratchet）</strong>: 失敗するたびに1行足す。全ての行が「実際に起きた失敗」に遡れる状態を保つ</li>
+        <li>今日の実物: SKILL、スキーマと辞書、検査スクリプト、rw / ro のロール、リハーサルで足した指示文の3行</li>
+      </ul>
+    </div>
+    <div class="border-2 border-emerald-200 rounded-xl p-5 flex flex-col">
+      <p class="font-bold text-lg mb-2 text-emerald-800">ループエンジニアリング</p>
+      <p class="text-sm text-slate-600 mb-3">「作る → 検査 → 直す」の<strong>回し方</strong>を設計する。誰が回すか、何で止まるか、状態をどこに残すか</p>
+      <ul class="list-disc pl-5 space-y-2 text-base text-slate-800">
+        <li><strong>誰が回すか</strong>: 今日は人（失敗 → 足りない情報を指す → 再実行）。実際はエージェントに渡す</li>
+        <li><strong>何で止まるか</strong>: 「動いた」ではなく「検査が通った」。止まる条件を先に書く</li>
+        <li><strong>状態をどこに残すか</strong>: 会話ではなくファイルと Issue。会話が切れても続きから回せる（Ralph loop の型）</li>
+        <li>今日の実物: 検査スクリプトを通してから終わる、という指示文の1行。一番小さいループ</li>
+      </ul>
+    </div>
+  </div>
+  <div class="mt-4 bg-slate-900 text-white rounded-xl px-6 py-4 text-lg font-semibold">
+    今日の積み上げは「仕様を発見するフェーズ」だった。次に同じものを作るなら、この<span class="text-amber-300">スキーマと指示文</span>と<span class="text-blue-300">ハーネス</span>を最初に渡して、並列で回す
+  </div>
+
+</div>
+<div class="slide " data-n="16" data-total="16">
+
+  <h2 class="text-3xl font-bold mb-1">宿題: 仕様先行で、もう一度作ってみる</h2>
+  <p class="text-slate-600 mb-3 text-base">今日と同じものを、今日の材料を使って「先に決めて、一気に」で作る。worktree は使わず、サブエージェントの並列まで</p>
+  <div class="grid gap-2 flex-1 min-h-0" style="grid-template-columns: 1fr 24px 1fr 24px 1fr 24px 1fr 24px 1.25fr;">
+    <div class="border-2 border-slate-300 bg-white rounded-xl p-3 flex flex-col min-h-0">
+      <div class="flex items-center mb-1"><span class="num">1</span><span class="font-bold text-lg leading-tight">環境を整える</span></div>
+      <p class="text-xs font-mono text-slate-500 mb-3">配布物（今日のもの）</p>
+      <ul class="list-disc pl-4 space-y-2 text-sm text-slate-800 leading-snug"><li>スキーマ文書と正規化辞書</li><li>指示文4本</li><li>seed 47件と検査スクリプト</li><li>compose と .env の雛形</li></ul>
+      
+    </div><div class="flex items-center justify-center text-2xl text-slate-400">→</div>
+    <div class="border-2 border-slate-300 bg-white rounded-xl p-3 flex flex-col min-h-0">
+      <div class="flex items-center mb-1"><span class="num">2</span><span class="font-bold text-lg leading-tight">仕様を決める</span></div>
+      <p class="text-xs font-mono text-slate-500 mb-3">SPEC.md</p>
+      <ul class="list-disc pl-4 space-y-2 text-sm text-slate-800 leading-snug"><li>plan mode で高機能モデルと会話して固める</li><li>書くのは「何を」。ゴール／機能／やらないこと／制約（版・1ファイル）</li><li>受け入れ条件は<strong>検査として書く</strong>（48行ある、「コールセンター」でコンタクトセンターが出る）</li></ul>
+      
+    </div><div class="flex items-center justify-center text-2xl text-slate-400">→</div>
+    <div class="border-2 border-slate-300 bg-white rounded-xl p-3 flex flex-col min-h-0">
+      <div class="flex items-center mb-1"><span class="num">3</span><span class="font-bold text-lg leading-tight">完了条件を書く</span></div>
+      <p class="text-xs font-mono text-slate-500 mb-3">check.sh ＋ CLAUDE.md</p>
+      <ul class="list-disc pl-4 space-y-2 text-sm text-slate-800 leading-snug"><li>「動いた」ではなく「何が通れば完了か」を先に書く</li><li>できるだけ1コマンドにする。エージェントが自分で判定できる形</li><li>守ってほしい約束事（今日足した行）は CLAUDE.md に置く</li><li>ここが無いと、並列の「完了」を人が全部見直すことになる</li></ul>
+      
+    </div><div class="flex items-center justify-center text-2xl text-slate-400">→</div>
+    <div class="border-2 border-slate-300 bg-white rounded-xl p-3 flex flex-col min-h-0">
+      <div class="flex items-center mb-1"><span class="num">4</span><span class="font-bold text-lg leading-tight">タスクに割る</span></div>
+      <p class="text-xs font-mono text-slate-500 mb-3">TASKS.md</p>
+      <ul class="list-disc pl-4 space-y-2 text-sm text-slate-800 leading-snug"><li>単位は「独立して検査できるか」</li><li>各タスクに入力／出力／検査／<strong>触ってよいファイル</strong></li><li>画面はスキーマ文書（契約）に対して作れるので、DB投入と並列にできる</li></ul>
+      
+    </div><div class="flex items-center justify-center text-2xl text-slate-400">→</div>
+    <div class="border-2 border-orange-300 bg-orange-50 rounded-xl p-3 flex flex-col min-h-0">
+      <div class="flex items-center mb-1"><span class="num">5</span><span class="font-bold text-lg leading-tight">オーケストレータに渡す</span></div>
+      <p class="text-xs font-mono text-slate-500 mb-3">1セッション＋サブエージェント</p>
+      <ul class="list-disc pl-4 space-y-2 text-sm text-slate-800 leading-snug"><li>親が TASKS.md を読み、依存の無いタスクを子に並列で振る</li><li>子は自分の検査が通るまで。2回直して通らなければ止めて報告</li><li>仕様は変えない。疑問は QUESTIONS.md に書いて続ける</li></ul>
+      
+      <div class="mt-auto pt-3 flex items-stretch gap-1 text-xs">
+        <div class="flex flex-col justify-center"><span class="bg-slate-900 text-white rounded px-2 py-1 font-semibold whitespace-nowrap">親</span></div>
+        <div class="flex flex-col justify-center text-slate-400">⇉</div>
+        <div class="flex flex-col gap-1 flex-1">
+          <span class="bg-white border border-orange-300 rounded px-2 py-0.5 font-semibold">子: SKILL</span>
+          <span class="bg-white border border-orange-300 rounded px-2 py-0.5 font-semibold">子: DB投入</span>
+          <span class="bg-white border border-orange-300 rounded px-2 py-0.5 font-semibold">子: 画面</span>
+          <span class="bg-white border border-orange-300 rounded px-2 py-0.5 font-semibold">子: 導出・MCP</span>
+        </div>
+      </div>
+    </div></div>
+  <div class="mt-3 bg-slate-900 text-white rounded-xl px-6 py-3 text-base"><span class="text-amber-300 font-bold mr-3">最後に</span>全体の check.sh を通し、TASKS.md にチェック。人が見るのは仕様と結果の差分だけ。途中で CLAUDE.md に足すことになった行が「最初に渡せていなかった情報と指示」。並列はトークンを体数以上に使うので、予算を先に決めておく</div>
+
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let current = 0;
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((e) => {
+      if (e.isIntersecting && e.intersectionRatio > 0.5) {
+        current = slides.indexOf(e.target);
+      }
+    });
+  }, { threshold: [0.5] });
+  slides.forEach((s) => observer.observe(s));
+  function go(i) {
+    current = Math.max(0, Math.min(slides.length - 1, i));
+    slides[current].scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  document.addEventListener('keydown', (e) => {
+    if (['ArrowRight', 'ArrowDown', ' ', 'PageDown'].includes(e.key)) { e.preventDefault(); go(current + 1); }
+    if (['ArrowLeft', 'ArrowUp', 'PageUp'].includes(e.key)) { e.preventDefault(); go(current - 1); }
+    if (e.key === 'Home') { e.preventDefault(); go(0); }
+    if (e.key === 'End') { e.preventDefault(); go(slides.length - 1); }
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+{
+  "id": "aws-jp-genai-case-study-san-en-neophoenix",
+  "title": "バスケのスカウティングレポートを生成AIで自動生成",
+  "department": "データ分析",
+  "who_and_problem": "Bリーグ所属プロバスケットボールクラブ三遠ネオフェニックスのアナリストは、対戦相手分析と自チーム評価のためコーチ陣向けスカウティングレポートを作成しているが、シーズンごとにデータ量と種類が増え人力で全データを確認・解釈することが困難になり、分析がアナリストの経験や視点に依存して重要情報を見逃すリスクがあり、過密な試合スケジュールの中で毎回詳細なレポートを作る負担が大きかった。",
+  "problem_types": [
+    "調査・分析・原因究明に時間",
+    "文書・資料作成の負荷"
+  ],
+  "ai_and_system": "AIは、AWS Step Functionsの3ステップでAmazon Bedrockを呼び出し、スタッツごとの重要度データから分析の切り口を3つ抽出し、各切り口の詳細スタッツを基に深掘り分析し、根拠となる定量値を含むサマリを生成する。AIの外側では、Synergy Sports Technologyの分析ツール「Synergy」からAPIでスタッツを取得し、ローカル環境の機械学習プログラムで重要度を算出してAmazon S3に配置、生成レポートをAWS LambdaでSlackに通知する。",
+  "platforms": [
+    "AWS Step Functions",
+    "Amazon Bedrock",
+    "Amazon S3",
+    "AWS Lambda",
+    "Slack",
+    "Synergy Sports"
+  ],
+  "requirements": "データ: Synergyから取得する試合スタッツデータ、機械学習で算出したスタッツ重要度。基盤: AWS Step Functions、Amazon Bedrock、Amazon S3、AWS Lambda、Slack、ローカルの機械学習プログラム。運用体制: 記載なし（ビデオアナリストが利用し、プロンプト最適化やモデル精度向上を継続予定）。",
+  "confirmed_effects": "",
+  "hypothesized_effects": "記事は導入効果として、幅広いデータ全体を活用した分析、分析観点の属人化からの脱却、新たな気づきの創出、機械学習結果の即時解釈を挙げているが、いずれも数値の記載はない。今後はプロンプト最適化、他データソースとの連携、機械学習モデルの精度向上、より高度な分析機能の追加を予定。",
+  "source_url": "https://aws.amazon.com/jp/blogs/news/genai-case-study-san-en-neophoenix/",
+  "confirmed_at": "2026-09-07"
+}

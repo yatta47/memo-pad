@@ -1,0 +1,19 @@
+{
+  "id": "salesforce-mobile-build-investigation",
+  "title": "モバイルCI/CDのビルド失敗原因をAIが調査",
+  "department": "システム運用",
+  "who_and_problem": "SalesforceのモバイルCI/CDチーム（エンジニア8名）は社内60以上のモバイルリポジトリを支えていた。ビルド失敗の診断にはログ・メトリクス・複数システムを横断する手作業の調査が必要で、開発者はアプリコード起因か社内インフラ起因かApple/Googleのプラットフォーム変更起因かを見分けられず、利用拡大に伴い受け身のサポートが持続不能になっていた。",
+  "problem_types": [
+    "調査・分析・原因究明に時間"
+  ],
+  "ai_and_system": "AIは、Managed Pipelines・Splunkログ・過去メトリクス・社内システムから証拠を集め、関連する失敗を相関させて影響範囲（単発か広範か）を判定し、根本原因（アプリ／インフラ／外部プラットフォーム変更）を自然言語で説明する。開発者は「なぜ最新ビルドが失敗したか」と自然言語で問い合わせる。AIの外側には、宣言的YAMLのCI/CD基盤Managed Pipelines、Splunkのログ集約、ビルド履歴DB、運用メトリクスのダッシュボードがあり、AIはこれらを参照する。",
+  "platforms": [
+    "Managed Pipelines",
+    "Splunk"
+  ],
+  "requirements": "データ: ビルド失敗ログとビルド履歴、インフラの運用シグナル、リポジトリ横断の相関データ、過去のインシデント記録。基盤: Managed Pipelines、Splunk、社内ビルド履歴DB、メトリクスダッシュボード。運用体制: モバイルCI/CDチーム8名が開発者向けセルフサービスとして提供。",
+  "confirmed_effects": "インシデント解決が約60%改善。モバイルビルド失敗の分析・デバッグ工数が75%減少。",
+  "hypothesized_effects": "今後はビルド健全性の継続監視、異常の自動検知、開発者が失敗に遭遇する前の能動的通知、通知疲れを避けるアラートの優先順位付けへ進める計画。",
+  "source_url": "https://engineering.salesforce.com/how-ai-learned-to-investigate-mobile-build-failures-like-an-experienced-support-engineer/",
+  "confirmed_at": "2026-09-07"
+}

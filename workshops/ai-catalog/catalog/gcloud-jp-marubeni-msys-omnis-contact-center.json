@@ -1,0 +1,22 @@
+{
+  "id": "gcloud-jp-marubeni-msys-omnis-contact-center",
+  "title": "コンタクトセンターのFAQ生成と後処理をGeminiで自動化",
+  "department": "コンタクトセンター",
+  "who_and_problem": "丸紅情報システムズのコンタクトセンター向け製品「MSYS Omnis」を使う顧客企業では、オペレーターがキーワード検索型FAQで類義語や表現の揺らぎに対応できず必要な情報に素早く辿り着けず、FAQの作成・メンテナンスにも時間と労力がかかっていた。対応後は対応履歴の要約を手動でCRMに入力しており、手作業が多く要約精度にばらつきがあった。",
+  "problem_types": [
+    "情報検索・参照に時間がかかる",
+    "手入力・転記・記録の負荷"
+  ],
+  "ai_and_system": "AIは、社内マニュアルや過去の通話履歴からのFAQ自動生成（Gemini）、表記揺れや誤字があっても意味で探せる検索（Vertex AI Search）、通話の書き起こしから電話番号・住所などの項目を抽出し決まったフォーマットで出力する後処理の自動化（Gemini）を担当する。AIの外側では、Speech-to-Textによるリアルタイム文字起こし、生成FAQをナレッジ管理者がスクリーニング・承認してから公開する承認プロセス、App Engine上のシンプルな構成がある。",
+  "platforms": [
+    "Gemini",
+    "Vertex AI Search",
+    "Google Cloud Speech-to-Text",
+    "App Engine"
+  ],
+  "requirements": "データ: 社内マニュアル、過去の通話履歴、通話の書き起こしデータ。基盤: Google Cloud（Speech-to-Text、Vertex AI Search、Gemini API、App Engine）。運用体制: ナレッジ管理者による生成コンテンツのスクリーニング・承認、プロダクト更新と保守性を考慮したアーキテクチャの継続的見直し。",
+  "confirmed_effects": "後処理時間を2〜3割削減。PoCを含め7社で利用。",
+  "hypothesized_effects": "会話中に関連FAQを能動的に表示するオプション、会話からのキーワード自動抽出による関連FAQ表示、顧客の感情分析に基づく状況に合わせたFAQ表示を検討し、顧客満足度のさらなる向上を期待。",
+  "source_url": "https://cloud.google.com/blog/ja/topics/customers/marubeni-information-systems-challenge?hl=ja",
+  "confirmed_at": "2026-09-07"
+}

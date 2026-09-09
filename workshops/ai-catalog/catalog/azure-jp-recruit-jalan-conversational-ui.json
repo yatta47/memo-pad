@@ -1,0 +1,18 @@
+{
+  "id": "azure-jp-recruit-jalan-conversational-ui",
+  "title": "じゃらんnetの対話型UIで潜在ニーズを把握",
+  "department": "サービス企画",
+  "who_and_problem": "リクルートのじゃらんnet部門は、OTA業界の価格競争で差別化が難しく、既存検索では明示的な条件しか扱えずユーザーの潜在ニーズを把握できなかった。社内開発では検証スピードが遅く新施策の効果検証に時間がかかっていた。社内全体でも生成AIの利用ニーズに対しセキュリティ・ガバナンスを確保した環境がなかった。",
+  "problem_types": [
+    "開発・運用の速度と統制"
+  ],
+  "ai_and_system": "AIは、ユーザー入力テキストの分析、エリア情報の有無判定と追加質問の生成、宿泊施設の魅力文の生成、旅行との関連性スコアリングによるプロンプトインジェクション検知を担当する（Azure OpenAI Service）。AIの外側では、じゃらんnetのエリア・宿泊施設データベースとの統合、エリアから複数候補、単体エリア、宿提案へ進む対話フロー設計、悪質入力時に定型文を返す安全機構、データ推進室が利用申請をレビューして環境を発行する承認体制、ユーザーコメント収集とSNS反響の監視がある。",
+  "platforms": [
+    "Azure OpenAI"
+  ],
+  "requirements": "データ: じゃらんnetのエリア・宿泊施設データ。基盤: Azure OpenAI Service、社内で一元管理した生成AI利用環境。運用体制: データ推進室によるコンプライアンス判定と利用申請レビュー。",
+  "confirmed_effects": "プロトタイプを2週間で完成。回答はChatGPT比で1/3の時間。月数万ユーザーが対話型UIを利用し、SNSの否定的反応は1%未満。",
+  "hypothesized_effects": "「テーマ・目的軸」「移動方法軸」などの潜在ニーズ発見の継続、ファインチューニングによる精度向上、社内の承認・環境発行プロセスの自動化、セキュリティリスクの自動検知を見込む。",
+  "source_url": "https://www.microsoft.com/ja-jp/customers/story/1745181603188532421-recruit-co-ltd-azure-professional-services-ja-japan",
+  "confirmed_at": "2026-09-07"
+}

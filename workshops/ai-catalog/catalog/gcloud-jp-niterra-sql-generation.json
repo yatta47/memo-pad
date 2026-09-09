@@ -1,0 +1,26 @@
+{
+  "id": "gcloud-jp-niterra-sql-generation",
+  "title": "統合データ基盤で日本語からSQLを生成し分析を内製化",
+  "department": "データ分析",
+  "who_and_problem": "日本特殊陶業のグローバル戦略本部DX戦略室が主導。各事業部門のデータ分析担当者は可視化・分析ツールが不統一で習得に時間がかかり、開発スキル不足で仕様変更のたびに外部ベンダーに依存し、粒度や見方を変える検証が容易でなかった。情報システム部は権限設定・ライセンス更新・ユーザー棚卸に時間を取られ、海外拠点からのデータ取得もオンプレミス環境で都度共有が必要だった。",
+  "problem_types": [
+    "開発・運用の速度と統制"
+  ],
+  "ai_and_system": "AIは、日本語の自然言語の質問からSQLを生成し、そのコードの説明も同時に生成する（Vertex AI。現在は単一テーブルへのクエリ生成のみ）。AIの外側では、オンプレミス・データセンター・クラウド・工場のデータをDatastream、Cloud Storage、Cloud Workflowsで統合してBigQueryに集約する連携、Dataplexによるデータカタログとガバナンス、Cloud Run上のエンドユーザー向けポータル、Looker Studioの可視化、Google Workspace連携のアカウントベース権限管理がある。",
+  "platforms": [
+    "Vertex AI",
+    "BigQuery",
+    "Datastream",
+    "Cloud Storage",
+    "Cloud Workflows",
+    "Dataplex",
+    "Cloud Run",
+    "Looker Studio",
+    "Google Workspace"
+  ],
+  "requirements": "データ: オンプレミス・データセンター・クラウド・工場（IoT）の各データとカラム説明などのメタデータ。基盤: BigQuery、Datastream、Cloud Storage、Cloud Workflows、Dataplex、Cloud Run、Looker Studio、Vertex AI、Google Workspace。運用体制: 外部ベンダーへの都度発注から、ユーザー自身がSQL生成AIで分析する体制へ移行。",
+  "confirmed_effects": "",
+  "hypothesized_effects": "テーブル結合を伴うSQL生成やBigQuery MLによる高度な分析への拡張を見込む。SQL作成プロセスの理解を通じたスキル向上、社内の生成AIサービス第一弾として他部門との協業拡大を期待。分析のハードルを大幅に下げたと述べているが数値の記載はない。",
+  "source_url": "https://cloud.google.com/blog/ja/topics/customers/niterra-integrated-data-infrastructure-built-with-gen-ai-and-bigquery?hl=ja",
+  "confirmed_at": "2026-09-07"
+}

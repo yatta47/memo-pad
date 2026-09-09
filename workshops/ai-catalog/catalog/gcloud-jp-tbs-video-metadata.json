@@ -1,0 +1,22 @@
+{
+  "id": "gcloud-jp-tbs-video-metadata",
+  "title": "報道映像メタデータの自動生成で作業を1/10に",
+  "department": "報道",
+  "who_and_problem": "TBSテレビのメディアテクノロジー局メディアソリューション部と、報道局を含む各部門のスタッフ約100名は、映像素材へのメタデータ付与に3分の素材で基礎作業約40分とチェック15分の約1時間を要し、収録から付与完了まで2〜3週間かかっていた。ニュース素材は撮影後1週間程度が最も検索ニーズが高く、完成時には需要が過ぎていた。",
+  "problem_types": [
+    "手入力・転記・記録の負荷"
+  ],
+  "ai_and_system": "AIは、映像・音声・テロップをマルチモーダルに解析し、タイムスタンプ付きメタデータを生成する（Gemini 1.5 Proから2.0 Flashへ更新）。映像のみ・文字情報のみ・音声のみを別々に解析して統合し、過去のメタデータ例をFew-Shotで与えて記述の書き方を揃える。AIの外側では、Google Cloud上のファイルベースシステム（Cloud Storageに素材保管、GKEで運用、Filestore、BigQuery）が動き、生成後の人によるチェック作業は継続する。報道局の実際の検索語彙や必須記載項目（いつ・どこで・誰が・何を）を現場と確認して要件化した。",
+  "platforms": [
+    "Gemini",
+    "Cloud Storage",
+    "Google Kubernetes Engine",
+    "Filestore",
+    "BigQuery"
+  ],
+  "requirements": "データ: 映像素材と過去のメタデータ例、報道現場の検索語彙。基盤: Google Cloud（Cloud Storage、GKE、Filestore、BigQuery）、Gemini。運用体制: 生成後の人によるチェック体制と制作現場との連携。2024年3月に検討開始、2025年3月にGemini 2.0 Flashへ更新。",
+  "confirmed_effects": "メタデータ作成時間を1/10に短縮、チェックを含むトータル作業時間を約1/3に短縮。手作業では不可能だったタイムスタンプ付与と記述の均質化を実現。",
+  "hypothesized_effects": "収録から完成までを2〜3週間から5日程度に短縮する予定。スタッフのクリエイティブ業務への注力、埋もれた過去映像資産の発掘・活用、自動編集や素材レコメンド機能の実装を期待。",
+  "source_url": "https://cloud.google.com/blog/ja/topics/customers/tbs-tv-automatic-generation-of-video-metadata-with-gemini-15-pro?hl=ja",
+  "confirmed_at": "2026-09-07"
+}

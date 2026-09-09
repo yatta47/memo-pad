@@ -1,0 +1,26 @@
+{
+  "id": "aws-jp-bengo4com-devops-agent-case-study",
+  "title": "DevOps Agentでインシデント調査と起票を自動化",
+  "department": "システム運用",
+  "who_and_problem": "弁護士ドットコムのPlatform & Reliability Engineering部は、事業拡大でサービス数とトラフィックが増え対応するアラートの量と種類が年々増加し、調査対応が一部の熟練エンジニアに依存して属人化していた。アラート認知から原因特定・対応までは慣れたエンジニアでも30分程度かかり、あとからJiraに起票する運用では対応の遅れや起票漏れが起きていた。",
+  "problem_types": [
+    "調査・分析・原因究明に時間",
+    "属人化・スキル差"
+  ],
+  "ai_and_system": "AIは、AWS DevOps AgentがDatadogのメトリクス、APMトレース、Amazon ECSのデプロイ履歴、CloudWatchメトリクス、ホスト単位の影響を横断分析して根本原因と影響範囲を特定し、構造化レポートと、コーディングエージェントに渡せる「エージェント対応仕様」を生成する。AIの外側では、Datadog Monitorのアラートをwebhookでトリガーに自動起動し、Slackへレポートをリアルタイム配信、Skillsで定義した手順（ランブック・過去インシデントの参照、既存チケット検索、Jira Issue自動作成を終了条件化）を実行し、修正とPR作成は既存のコーディングエージェントによる修正フローが担う。DevOps Agentは参照権限のみで動作。",
+  "platforms": [
+    "AWS DevOps Agent",
+    "Datadog",
+    "Amazon ECS",
+    "Amazon CloudWatch",
+    "Slack",
+    "Jira",
+    "GitHub",
+    "MCP"
+  ],
+  "requirements": "データ: Datadogの監視データ・APMトレース、ECSデプロイ履歴、CloudWatchメトリクス、ランブック、過去のインシデント報告、サービス所有者情報。基盤: AWS DevOps Agent（MCPでDatadog・GitHub・Slack・Jira連携、Skills）、Datadog、Slack、Jira、Amazon ECS、Amazon CloudWatch。運用体制: PRE部が本番監視データに接続して試行運用し、エンジニアは仕様の確認・判断・修正の承認に集中する役割分担。Skillsは運用しながら最適化。",
+  "confirmed_effects": "2026年3月のパフォーマンス劣化インシデントで、調査開始から約10分で根本原因（デプロイで導入されたN+1問題とSpotインスタンスのCPU競合による増幅）を特定し、Jira Issueを自動登録、迅速なロールバックで収束。従来は慣れたエンジニアでも30分程度を要していた。調査完了事象は必ずJiraに登録され対応漏れの懸念が解消。運用開始から1週間ほどで繰り返しアラートへの予防策が提示された。",
+  "hypothesized_effects": "エージェント対応仕様により対応完了までのリードタイムが短縮されているとしている（数値なし）。今後はProactive Incident Prevention機能の本格活用で「検知→原因特定→改善提案→コード修正」のサイクルを障害前にも回すことや、トポロジー機能によるシステム全体理解の促進を期待。",
+  "source_url": "https://aws.amazon.com/jp/blogs/news/bengo4com-devops-agent-case-study/",
+  "confirmed_at": "2026-09-07"
+}

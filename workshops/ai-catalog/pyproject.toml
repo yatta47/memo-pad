@@ -1,0 +1,15 @@
+[project]
+name = "workshop-ai-catalog"
+version = "0.0.0"
+description = "AI活用事例カタログ ワークショップ環境"
+requires-python = ">=3.12"
+dependencies = [
+    "mcp>=2",
+    "httpx",
+    "psycopg[binary]",
+    "streamlit",
+    "python-dotenv",
+]
+
+[tool.uv]
+package = false

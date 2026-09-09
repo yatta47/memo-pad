@@ -1,0 +1,24 @@
+{
+  "id": "aws-jp-kddi-aws-devops-agent-incident-response",
+  "title": "DevOps Agentを先行調査官にしAWSサポートと連携",
+  "department": "システム運用",
+  "who_and_problem": "KDDIのライフデザインプラットフォーム部が運用するWebサービス向けビジネスロジックプラットフォーム（サーバーレス構成）で、API Gatewayの5XXエラーとLambdaのスロットリングが同時発生し、Lambda・RDS Proxy・Auroraにまたがる複合的な問題が疑われた。マネージドサービスの内部はユーザー側で深く把握できず、AWSサポートとメトリクスやログのやり取りを繰り返して数週間を費やし、暫定対応にとどまって同じ調査ループに戻ることも珍しくなかった。",
+  "problem_types": [
+    "調査・分析・原因究明に時間"
+  ],
+  "ai_and_system": "AIは、AWS DevOps Agentがメトリクス・ログ・設定値・ソースコード・デプロイ履歴を横断分析して根本原因の仮説と複数の対応案を提示し、チャットでの指摘・修正を通じて仮説の精度を上げる。AIの外側では、運用チームがその出力を「AWSサポートへの問い合わせ前の仮説整理」と位置づけ、「Ask for human support」機能でサポートケースを作成して調査ログを自動共有し、AWSサポートが仮説を検証・補強する三者の役割分担で進め、複数の対応案を検証環境で並行検証する。現時点では調査起動は手動。",
+  "platforms": [
+    "AWS DevOps Agent",
+    "AWS Lambda",
+    "Amazon API Gateway",
+    "Amazon RDS",
+    "Amazon Aurora",
+    "Amazon CloudWatch",
+    "AWS Support"
+  ],
+  "requirements": "データ: Amazon CloudWatchのメトリクス・ログ、Lambdaのソースコードと設定値、デプロイ履歴。基盤: AWS DevOps Agent、AWS Lambda、Amazon API Gateway、Amazon RDS Proxy、Amazon Aurora、AWSサポート（ケース起票・チャット連携にはBusinessサポート以上が必要）。運用体制: プラットフォームの運用チームが試験導入し、AWSサポートと協働して仮説を検証。",
+  "confirmed_effects": "インシデント対応のリードタイムが従来の数週間から数日へ短縮（被疑箇所の特定から複数対応案の策定・検証まで）。AWSサポートとの調査でLambdaとRDS Proxy間のセッション管理設定に起因する根本原因を特定し、書き込み・読み取りリクエストの分離が再発防止に有効であることを確認。",
+  "hypothesized_effects": "プロアクティブな障害予防機能による「起きる前に手を打つ」運用への転換、CloudWatch・EventBridge・SNS連携によるアラーム発火時の調査自動起動、調査結果をKiroに渡してチケット起票やリポジトリ調査を進める流れを検討中。再発防止構成はKDDI側で検証中。",
+  "source_url": "https://aws.amazon.com/jp/blogs/news/kddi-aws-devops-agent-incident-response/",
+  "confirmed_at": "2026-09-07"
+}

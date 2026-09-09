@@ -1,0 +1,20 @@
+{
+  "id": "aws-jp-genai-case-study-berry",
+  "title": "医療機器QMSの文書チェック・原因分析・テスト生成",
+  "department": "品質管理",
+  "who_and_problem": "医療機器メーカーでありクラウド型eQMS「QMSmart」を提供するBerryと、その顧客である医療機器メーカーの品質管理担当者。QMS省令やISO 13485への準拠が求められる中、規制要件の習得に時間がかかり新人教育が難しく、文書の不正確さや属人的な原因分析、紙・Excelによる進捗管理の非効率に悩んでいた。",
+  "problem_types": [
+    "属人化・スキル差",
+    "調査・分析・原因究明に時間"
+  ],
+  "ai_and_system": "AIは、規制要件に対する文書の適合性判定と不足箇所の指摘（AI文章チェック）、登録済み事例DBからの類似事例抽出・パターン分析となぜなぜ分析支援によるCAPA提案（AI根本原因分析支援）、FDA通知など任意文書からの理解度テスト問題生成（英文から日本語も可）を担当する。AIの外側では、QMSmartの文書管理・品質イベント管理・教育訓練の各機能から、医療機器の専門的視点を組み込んだプロンプトテンプレートでAmazon BedrockのInvokeModelを呼び出す。Guardrailsでプロンプトインジェクション対策を行う。RAGやファインチューニングは使わずシステムプロンプトの工夫で対応。",
+  "platforms": [
+    "Amazon Bedrock",
+    "Amazon Bedrock Guardrails"
+  ],
+  "requirements": "データ: QMS文書、苦情・不適合の事例データベース、FDA通知などの規制文書。基盤: Amazon Bedrock（InvokeModel、Guardrails）、既存のQMSmart（AWS上）。運用体制: 50社以上の医療機器メーカーへのヒアリングを基にBerryが機能開発。複数モデルの比較検証・切り替え検証を継続。",
+  "confirmed_effects": "Berry側: RAG検証に約1か月を要していたところ、システムプロンプト方式への切替で以降の開発期間を約1週間に短縮。顧客企業側: 規制適合性の自動チェックで業務効率を50%向上、教育資料の作成時間を半日から15分に短縮。",
+  "hypothesized_effects": "Amazon Bedrockを活用した新機能の開発が進められており、今後も生成AI活用の加速が見込まれる。医療機器業界全体の品質管理業務の効率化への貢献を目指す。",
+  "source_url": "https://aws.amazon.com/jp/blogs/news/genai-case-study-berry/",
+  "confirmed_at": "2026-09-07"
+}

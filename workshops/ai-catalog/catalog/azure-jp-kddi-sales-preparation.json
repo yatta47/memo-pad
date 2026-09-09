@@ -1,0 +1,23 @@
+{
+  "id": "azure-jp-kddi-sales-preparation",
+  "title": "営業資料の検索・要約で営業準備時間を約74%削減",
+  "department": "営業",
+  "who_and_problem": "KDDIのビジネスデザイン本部（法人営業部門）では、顧客と接する時間が業務全体の23%にとどまっていた。商材が多く、顧客ごとの提案資料作成のうち情報収集・整理に約50%、資料作成に約30%、レビューに約20%の時間を費やしていた。",
+  "problem_types": [
+    "情報検索・参照に時間がかかる",
+    "文書・資料作成の負荷"
+  ],
+  "ai_and_system": "AIは、営業資料スライドの画像と要約の生成、検索プロンプトの補完、キーワード抽出と関連度判定を担当する（Azure OpenAI Service、GPT-4o/GPT-4o mini）。AIの外側では、SharePoint Onlineから営業資料（PPTX）を取得してPDF化しページ単位で処理する連携、Azure AI Searchでの検索インデックス構築、Microsoft Entra IDによるログイン制御、検索結果にスライド画像と要約を表示し関連度の高いページをプレビューでマークするUIがある。機密情報は学習させない設計。",
+  "platforms": [
+    "Azure OpenAI",
+    "GPT",
+    "Azure AI Search",
+    "Microsoft Entra ID",
+    "Microsoft SharePoint"
+  ],
+  "requirements": "データ: SharePoint Online上の営業資料（PPTX）。基盤: Azure OpenAI Service（GPT-4o、GPT-4o mini）、Azure AI Search、Microsoft Entra ID、SharePoint Online。運用体制: 記載なし（第2フェーズを2024年11月に開始し検証中）。",
+  "confirmed_effects": "利用ユーザーの80%が情報収集時間の削減を実感し、1ユーザーあたりの削減率は約74%。",
+  "hypothesized_effects": "第2フェーズで「KDDIテイスト」への自動整形とサマリースライドの自動生成を検証中で、営業サイクルの高速化とレビュー・会議時間の短縮を目指す。Power PlatformとCopilotの組み合わせで市民開発の加速も構想。",
+  "source_url": "https://www.microsoft.com/ja-jp/customers/story/22859-kddi-corporation-azure",
+  "confirmed_at": "2026-09-07"
+}

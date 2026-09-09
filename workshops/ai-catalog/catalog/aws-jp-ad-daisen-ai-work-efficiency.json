@@ -1,0 +1,23 @@
+{
+  "id": "aws-jp-ad-daisen-ai-work-efficiency",
+  "title": "DM制作の現場が生成AIでスケジュール・配送ツールを内製",
+  "department": "DM制作",
+  "who_and_problem": "ダイレクトメールの企画・制作・配送を手がけるアド・ダイセンでは、案件ごとに帳票形式や運用プロセスが異なり業務が個別最適化されていた。無数の案件課題すべてにエンジニアを割り当てるのは非現実的で、基幹システムを刷新しても手元の業務プロセスの効率化に至らなかった。配送シミュレーションでは数万〜数百万レコードを複数の配送マスターに当てる作業に丸2日かかっていた。",
+  "problem_types": [
+    "開発・運用の速度と統制",
+    "手入力・転記・記録の負荷"
+  ],
+  "ai_and_system": "AIは、GenU（Generative AI Use Cases）のチャットやビルダーモードで非技術者の要件からPythonコードを生成し、Kiro（Agentic AI搭載IDE）で対話的にコードの生成・修正・デバッグを行う役割を担う。AIの外側では、生成されたツールがExcelへの自動転記、VBAによるOutlookカレンダー登録、約10社の宅配会社マスターとの一括照合と結果可視化を実行する。GenUの議事録作成、DM封筒加工の画像判定、営業数字分析も試した。",
+  "platforms": [
+    "Generative AI Use Cases JP",
+    "Kiro",
+    "Amazon Bedrock",
+    "Microsoft Excel",
+    "Microsoft Outlook"
+  ],
+  "requirements": "データ: 出荷日などのプロジェクト情報、配送マスター、数万〜数百万レコードの配送データ。基盤: Amazon Bedrock、GenU、Kiro、Excel/VBA/Outlook。運用体制: RPA・社内Q&A・生成AIの3チームを基礎研究目的で編成し、生成AIチームが活動。担当者が開発・検証し経験者がチェックしてルールを作る体制を整備中。",
+  "confirmed_effects": "スケジュール管理ツールにより2〜3時間かかっていた作業が数分で完了し、人的ミスも削減。配送シミュレーションツールはKiroで2時間で基本機能が完成し、丸2日かかっていた処理が約30秒に短縮。",
+  "hypothesized_effects": "配送シミュレーションツールは実業務での社内リリースに向けて調整中で、リリース判断基準や展開方法を検討している。全社DXの促進につなげる方針。",
+  "source_url": "https://aws.amazon.com/jp/blogs/news/ad-daisen-ai-work-efficiency/",
+  "confirmed_at": "2026-09-07"
+}

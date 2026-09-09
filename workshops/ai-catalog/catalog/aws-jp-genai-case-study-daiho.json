@@ -1,0 +1,23 @@
+{
+  "id": "aws-jp-genai-case-study-daiho",
+  "title": "建設会社の社内AI「大豊AI」で規程検索と議事録作成",
+  "department": "施工管理",
+  "who_and_problem": "総合建設会社の大豊建設の現場監督や営業担当者は、フォルダ構成が複雑な文書管理システムで月数回更新される社内規程を探すのに時間がかかり、キーワード検索では無関係な文書も混じっていた。竣工資料は保管されるだけで活用されず、議事録などの文書作成負担も大きく、中堅社員不足で若手が質問しにくい環境だった。",
+  "problem_types": [
+    "情報検索・参照に時間がかかる",
+    "文書・資料作成の負荷"
+  ],
+  "ai_and_system": "AIは、フリートーク（質問・翻訳・Excel関数・建設専門知識）、Amazon Bedrock Knowledge Basesによる社内規程やe-Govの法令PDFの横断検索、アップロードしたPDFに対する質問応答と議事録初稿生成、文書校正・議事録要約・メール作成など8種類のユースケース別テンプレートによる文章生成を担当する。AIの外側では、会議の文字起こしをPDF化してアップロードする運用、管理者側でのユースケース別プロンプト事前設定、Auth0による認証、S3への社内ドキュメント格納、担当者による生成結果の手直しがある。",
+  "platforms": [
+    "Amazon Bedrock",
+    "Amazon Bedrock Knowledge Bases",
+    "AWS Lambda",
+    "Amazon S3",
+    "Auth0"
+  ],
+  "requirements": "データ: 社内規程、社内資料、e-Govから取得した法令PDF、会議の文字起こし、建築部門の配信資料。基盤: Amazon Bedrock、Amazon Bedrock Knowledge Bases（Amazon Kendraから移行）、AWS Lambda、Amazon S3、Auth0、Webサイト。運用体制: 各支店から集めた11名と協力会社ワンダーソフト1名の生成AIワーキンググループが機能要件を議論し段階的に拡充。ワンダーソフトが構築と利用状況分析を担当。新モデルの積極的な取り込みを継続。",
+  "confirmed_effects": "2025年6月の全社展開から約8か月で307名が利用し累計32,709回以上の利用。規程検索だけで約250時間の業務時間削減。ユースケース別検索機能は2025年12月リリース後に利用回数上位に入った。フリートークの質問の60.9%が日常的な質問、24.1%が建設業特化の質問。",
+  "hypothesized_effects": "文書作成やファイル分析を含めるとさらに大きな効果が生まれているとしている（数値は記載なし）。Amazon Bedrock AgentCoreを活用した施工計画書の作成支援と社内資料（パワーポイント）作成支援を検討中で、施工計画書では大幅な効率化が期待されている。Amazon S3 Vectorsによるコスト削減も検討。グループ会社や他社への展開も視野。",
+  "source_url": "https://aws.amazon.com/jp/blogs/news/genai-case-study-daiho/",
+  "confirmed_at": "2026-09-07"
+}

@@ -1,0 +1,30 @@
+{
+  "id": "aws-jp-rakus-ai-agent-development-and-evaluations",
+  "title": "楽楽精算の伝票作成AIエージェントと評価設計",
+  "department": "経理",
+  "who_and_problem": "ラクスのAIエージェント課は「楽楽精算」の利用者向けに伝票作成AIエージェントを開発した。利用者は従来、領収書を確認して金額や日付を入力し、事前申請やクレジットカード明細と照合する手作業を行っており、業務負荷やミスの原因になっていた。開発側では、複数エージェントが連携しユーザーの選択で正しさが確定する構成の品質をリリース前後でどう評価するかが課題だった。",
+  "problem_types": [
+    "手入力・転記・記録の負荷",
+    "開発・運用の速度と統制"
+  ],
+  "ai_and_system": "AIは、Mastraフレームワークのワークフローで、領収書データを起点にクレジットカード明細の提案、事前申請との紐づけ、伝票項目の補完を順に実行して伝票を自動生成する3つのエージェントを担い、伝票全体の論理的整合性はLLM-as-a-Judgeで評価する。AIの外側では、Amazon EKS上にゲートウェイ（認証・認可集約）、バックエンド（業務データAPIとプライベートMCPサーバー）、エージェントの3層を構成し、LiteLLMプロキシでモデル切替・リトライ・フォールバックを担い、Human-in-the-Loopでユーザー確認待ちの間はワークフローを一時停止しAmazon SQSで再開する。Argo CDによるGitOps、Fluent Bit・OpenTelemetry CollectorでCloudWatchへログ・メトリクス・トレースを収集し、提案内容とユーザーの実際の選択をDBで突き合わせるオンライン評価を行う。",
+  "platforms": [
+    "Amazon EKS",
+    "Argo CD",
+    "Amazon DynamoDB",
+    "Amazon ElastiCache",
+    "Amazon SQS",
+    "Mastra",
+    "LiteLLM",
+    "MCP",
+    "OpenTelemetry",
+    "Fluent Bit",
+    "Amazon CloudWatch",
+    "AWS X-Ray"
+  ],
+  "requirements": "データ: 領収書データ、クレジットカード明細、事前申請、伝票履歴、エッジケースを含むオフライン評価データセット（外貨・端数・税率混在・表記揺れ・日付またぎ等）。基盤: Amazon EKS、Argo CD、Amazon DynamoDB、Amazon ElastiCache Serverless for Valkey、Amazon SQS、Mastra、LiteLLM、OpenTelemetry、Amazon CloudWatch（Application Signals、Generative AI Observability）、AWS X-Ray。運用体制: AIエージェント課が設計・実装・運用・評価を担当し、AWSアカウントチームとGenAIICと協業して評価設計を実施。",
+  "confirmed_effects": "",
+  "hypothesized_effects": "利用者は領収書を選択するだけで必要項目が補完された状態で申請を進められ、繰り返しの多い申請作業の時間短縮と業務負荷の大幅な軽減を狙う（数値の記載なし）。オフライン評価でエージェントごとの成熟度差と改善優先順位が明確になった。今後はユーザーの選択・修正履歴をEpisodic Memoryとして蓄積する自己改善ループ、評価の多層化、オンライン実データからの評価データセット継続拡充を目指す。",
+  "source_url": "https://aws.amazon.com/jp/blogs/news/rakus-ai-agent-development-and-evaluations/",
+  "confirmed_at": "2026-09-07"
+}

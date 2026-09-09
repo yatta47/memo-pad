@@ -1,0 +1,28 @@
+{
+  "id": "aws-ml-par-technology-multitenant-analytics",
+  "title": "飲食チェーン向け行レベルセキュリティ付きLLM分析",
+  "department": "店舗運営",
+  "who_and_problem": "飲食業向け技術提供企業PAR Technology（300超の飲食事業者にサービス提供）のMLチームは、業務ユーザーが平易な英語で売上などの分析質問をできるようにしたかった。ただし「先週の総売上は？」という同じ質問でも、2店舗のフランチャイズオーナーには8.4万ドル、200店舗を統括するブランド管理者には920万ドルと、利用者の権限に応じて異なる結果を返す必要があり、テナント階層をまたぐ厳格な行レベルセキュリティが課題だった。",
+  "problem_types": [
+    "調査・分析・原因究明に時間",
+    "開発・運用の速度と統制"
+  ],
+  "ai_and_system": "AIは、質問の意図解釈と対応可能な指標かの検証、事前フィルタ済みスキーマに対する分析SQLの生成、結果の平易な説明を担当する（Amazon Bedrock上のClaude Sonnet）。AIの外側では、AWS SigV4署名による認証、テナント・事業・店舗の権限でデータを事前にフィルタするSQL CTEをプログラムで生成する層、曖昧な質問をSQL生成前に拒否する検証層、Databricks上の暗号化・ネットワーク分離、IAM・CloudWatch・CloudTrailによる監査ログ、API GatewayとWAFのレート制限が動く。",
+  "platforms": [
+    "Amazon Bedrock",
+    "Claude",
+    "Databricks",
+    "Amazon API Gateway",
+    "AWS WAF",
+    "AWS KMS",
+    "AWS CloudTrail",
+    "AWS Secrets Manager",
+    "Amazon CloudWatch",
+    "AWS IAM"
+  ],
+  "requirements": "データ: テナント→事業→管理者の階層と店舗単位のアクセス権マッピング、Databricks上の売上データ。基盤: Amazon Bedrock（Claude Sonnet）、Databricks、Flask API、AWS KMS、CloudTrail、Secrets Manager、API Gateway、WAF。運用体制: 本人確認・意味検証・プログラム的データ分離の3層セキュリティ、異常検知の監視、不変の監査ログ。読者には自身の環境でのセキュリティ評価と侵入テストを推奨している。",
+  "confirmed_effects": "本番で5万件超のクエリを処理し、テナント間のデータ露出事故はゼロ。",
+  "hypothesized_effects": "利用者フィードバックで推論エンジンを継続的に改善し、利用のたびに安全性と賢さが増すとしている（具体的な数値目標や時期の記載はなし）。",
+  "source_url": "https://aws.amazon.com/blogs/machine-learning/multi-tenant-llm-analytics-with-row-level-security-how-we-built-a-secure-agent-on-aws/",
+  "confirmed_at": "2026-09-07"
+}

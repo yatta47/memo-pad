@@ -1,0 +1,26 @@
+{
+  "id": "aws-jp-genai-case-study-creative-web",
+  "title": "コールセンターの過去対応履歴をRAGでサジェスト",
+  "department": "コンタクトセンター",
+  "who_and_problem": "システム・PCサポート・Web・EC関連の問い合わせ対応サービスを提供するクリエイティブ・ウェブのコールセンター担当者は、問い合わせ内容や対応方法の記録が属人的で一元化されておらず、担当者ごとに対応品質がばらつき、過去の類似ケースを探すのに時間がかかっていた。受電から完了までのステータス管理も不十分で対応漏れ・遅延のリスクや引き継ぎの非効率があった。",
+  "problem_types": [
+    "属人化・スキル差",
+    "情報検索・参照に時間がかかる"
+  ],
+  "ai_and_system": "AIは、過去の対応履歴からの類似事例検索と最適な対応方法のサジェスト（RAG）、箇条書きメモからの対応記録の自動文章化・要約、通話文字起こしの要約と電話対応の自動評価、蓄積履歴の自動校正によるナレッジ品質維持を担当し、問い合わせの複雑さに応じてAmazon Nova、Claude 3 Sonnet/Haikuを使い分ける。AIの外側では、受電・保留・対応中・完了のステータス管理と担当者状況表示、Amazon RDSでの問い合わせ・履歴管理、OpenSearchによるキーワード＋セマンティック検索、全対応履歴の定期的なRAG取り込み、KPIダッシュボード、対応件数をポイント化してバーチャルペットを育てるモチベーション機能がある。",
+  "platforms": [
+    "Amazon Bedrock",
+    "Amazon Nova",
+    "Claude",
+    "Amazon OpenSearch Service",
+    "AWS Lambda",
+    "Amazon RDS",
+    "Amazon S3",
+    "Amazon API Gateway"
+  ],
+  "requirements": "データ: 過去の問い合わせ対応履歴、通話音声と文字起こし、対応関連ドキュメント。基盤: Amazon Bedrock、Amazon OpenSearch Service、AWS Lambda、Amazon RDS、Amazon S3、Amazon API Gatewayのサーバーレス構成。運用体制: 対応結果をフィードバックとして継続的に精度向上させる運用（担当者の体制は記載なし）。",
+  "confirmed_effects": "初回解決率が約30%増加。平均対応時間を従来比約40%削減。過去事例の検索時間を5分から1分以下に短縮。",
+  "hypothesized_effects": "新人教育期間の短縮、同じ人員でより多くの問い合わせに対応できることによる人件費の最適化を効果として挙げている（数値は記載なし）。短期的には音声認識による記録の完全自動化、多言語対応、リアルタイムサジェスト・エスカレーション判定を計画。長期的には予測分析、顧客感情分析、業界特化型展開を構想。",
+  "source_url": "https://aws.amazon.com/jp/blogs/news/genai-case-study-creative-web/",
+  "confirmed_at": "2026-09-07"
+}

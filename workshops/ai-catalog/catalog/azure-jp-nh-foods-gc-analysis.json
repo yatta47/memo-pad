@@ -1,0 +1,21 @@
+{
+  "id": "azure-jp-nh-foods-gc-analysis",
+  "title": "生活者2万人の擬似人格で1,000人調査を45分に",
+  "department": "営業",
+  "who_and_problem": "日本ハムの営業部門は、プライベートブランド商品の提案時に必要な生活者調査の分析に半月〜1か月を要し、N1分析から意見集約、インターネット調査による検定までに多大なコストと時間がかかっていた。提案から成約まで1〜2か月を要していた。",
+  "problem_types": [
+    "調査・分析・原因究明に時間"
+  ],
+  "ai_and_system": "AIは、約2万人分の生活者プロファイルデータをもとに擬似人格を生成し、アンケート設問に対して各プロファイル別の回答を生成する（Azure OpenAI Service、GPT-4o mini。TopPとTemperatureで回答の多様性を調整）。AIの外側では、クライアントPC上で動くPython製UIアプリ、Microsoft 365のセキュリティ機能、全社の生成AI基盤として採用したシステムサポート社の「Smart Generative Chat」があり、提案現場での顧客反応をフィードバックして短期で改善した。",
+  "platforms": [
+    "Azure OpenAI",
+    "GPT",
+    "Microsoft 365",
+    "Smart Generative Chat"
+  ],
+  "requirements": "データ: 70〜80項目を持つ約2万人分の生活者プロファイリングデータ。基盤: Azure OpenAI Service（GPT-4o mini）、Python製クライアントアプリ、Microsoft 365。運用体制: IT戦略部と営業部門の密接な連携、提案現場からのフィードバックによる改善（改善フェーズは4か月でほぼ完了）。",
+  "confirmed_effects": "1,000人分のアンケート調査が45分で実施可能、1回あたりのコストは100円強。5,000人分の分析を実施した例があり、商談化率も向上。",
+  "hypothesized_effects": "クライアントPCアプリのWeb化、回答速度を上げて商談の場でシミュレーターとして使う構想、スーパー・外食業界への適用拡大、戦略立案やSNS対策への応用、バリューチェーン全体への展開を目指す。",
+  "source_url": "https://www.microsoft.com/ja-jp/customers/story/22479-nh-foods-azure-app-service",
+  "confirmed_at": "2026-09-07"
+}

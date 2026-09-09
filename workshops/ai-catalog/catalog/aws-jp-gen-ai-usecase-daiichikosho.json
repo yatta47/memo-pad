@@ -1,0 +1,21 @@
+{
+  "id": "aws-jp-gen-ai-usecase-daiichikosho",
+  "title": "ヘルプデスク通話の文字起こし・要約でCRM入力を軽減",
+  "department": "ヘルプデスク",
+  "who_and_problem": "第一興商の営業向け社内ヘルプデスク（日勤交代制12名）は、カラオケ機器の不具合等に関する1日平均300件の問い合わせに対応している。機器を操作しながら回答するためリアルタイムにメモが取れず、CRMへの記録が後回しになり録音を聞き直して入力することもあった。記録内容も担当者の文章力に依存し、必要な情報が欠けることがあった。",
+  "problem_types": [
+    "手入力・転記・記録の負荷"
+  ],
+  "ai_and_system": "AIは、通話の文字起こし（Amazon Transcribe）と、通話内容の要約（Amazon Bedrock上のClaude 2）を担当する。AIの外側では、ヘルプデスクの録音データをAmazon S3にアップロードする流れがあり、要約結果は担当者の手入力内容と比較して3段階で品質評価する検証プロセスを人が回した。",
+  "platforms": [
+    "Amazon Transcribe",
+    "Amazon Bedrock",
+    "Claude",
+    "Amazon S3"
+  ],
+  "requirements": "データ: ヘルプデスクの通話録音データ。基盤: Amazon S3、Amazon Transcribe、Amazon Bedrock（Claude 2）。運用体制: 入社1か月の社員を中心とした検証チームが約3週間で検証を実施。複数部署への現状運用ヒアリングを伴った。",
+  "confirmed_effects": "検証データ58件のうち約90%が一定の要約品質基準を満たした。プロンプトに詳細情報を追加する改良では精度が95%を超えた。",
+  "hypothesized_effects": "作業負荷の大幅な軽減が期待できるとしている。要約内容をFAQシステムと統合してさらなる効率化を図る予定。Claude 3 Haikuへの切替でClaude 2比90%以上の料金削減と応答時間短縮を見込む。会議の議事録など他用途への展開も検討中。",
+  "source_url": "https://aws.amazon.com/jp/blogs/news/gen-ai-usecase-daiichikosho/",
+  "confirmed_at": "2026-09-07"
+}
