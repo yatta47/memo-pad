@@ -1,0 +1,4 @@
+OWAS`
+
+https://www.ipa.go.jp/jinzai/ics/core_human_resource/final_project/2026/ai-security.html
+https://genai.owasp.org/llm-top-10/
