@@ -18,6 +18,13 @@ AIエージェントの業務利用を始めたばかりの人向け勉強会で
 | AI利用に伴う認知負荷への向き合い方 | `認知負荷.png` |
 | AIが知らない独自ナレッジの蓄積 | `独自ナレッジ.png` |
 
+## メモ
+
+| ファイル | 内容 |
+|---|---|
+| `20260916-answers.md` | 各質問への回答メモ（話す順番、答え、話すときのポイント、スライド化の方針） |
+| `20260918-proprietary-knowledge-accumulation.md` | 独自ナレッジの蓄積方法の議論まとめ（分類、拾い方、拾えない残余、世の中の取り組み、個人と会社の違い、着地） |
+
 ## 参考リンク（memo.txt）
 
 - IPA AIセキュリティ: https://www.ipa.go.jp/jinzai/ics/core_human_resource/final_project/2026/ai-security.html
