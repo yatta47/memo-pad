@@ -1,0 +1,40 @@
+# Ontology: Relation Types
+version: 1
+relation_types:
+  - type: OWNS
+    from: [Team]
+    to: [Service, BusinessObject, Batch]
+    description: 責任主体
+  - type: PROVIDES
+    from: [Service]
+    to: [API]
+    description: API提供
+  - type: CALLS
+    from: [Service, Batch, Unknown]
+    to: [API]
+    description: API呼出（正規ルート）
+  - type: READS
+    from: [Service, Batch, Unknown]
+    to: [Table]
+    description: 物理READ。access_mode=direct はOwner以外からの直接参照
+  - type: WRITES
+    from: [Service, Batch]
+    to: [Table]
+    description: 物理WRITE
+  - type: OPERATES_ON
+    from: [API]
+    to: [BusinessObject]
+    description: 論理操作
+  - type: REPRESENTS
+    from: [Table]
+    to: [BusinessObject]
+    description: 物理表現
+  - type: DEPENDS_ON
+    from: ["*"]
+    to: ["*"]
+    description: 補助依存
+relation_properties:
+  common: [id, access_mode, observation_type, note, resolved_from]
+evidence_properties:
+  required: [source_type, source_ref, first_seen, last_seen, confidence, observation_type]
+  observation_type_values: [declared, observed, manual]

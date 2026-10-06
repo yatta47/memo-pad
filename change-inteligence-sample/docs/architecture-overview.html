@@ -1,0 +1,331 @@
+<title>Change Intelligence 全体像</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: a single explanatory sheet. Two figures (demo world, PoC stack) with supporting tables. */
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --fg: #1a2233; --muted: #5b6577; --line: #d8dee8; --line-strong: #aab4c4;
+    --accent: #3b4fd8;
+    --svc: #2563eb; --api: #0891b2; --tbl: #b7791f; --db: #6b7280; --batch: #c2418a; --team: #7c5cd6; --unk: #e4610e; --direct: #d6321f; --declared: #8a94a6;
+    --font-body: "Noto Sans JP", "Hiragino Sans", "Yu Gothic UI", system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --bg: #0f1420; --panel: #161c2a; --fg: #e6eaf2; --muted: #9aa5b8; --line: #2a3242; --line-strong: #46506a; --accent: #8b9cff;
+    --svc: #6b9bff; --api: #38bdf8; --tbl: #e2a93b; --db: #9aa3b2; --batch: #f06ab7; --team: #a78bfa; --unk: #fb8a3c; --direct: #ff6b5a; --declared: #7d8799; color-scheme: dark } }
+  :root[data-theme="dark"] {
+    --bg: #0f1420; --panel: #161c2a; --fg: #e6eaf2; --muted: #9aa5b8; --line: #2a3242; --line-strong: #46506a; --accent: #8b9cff;
+    --svc: #6b9bff; --api: #38bdf8; --tbl: #e2a93b; --db: #9aa3b2; --batch: #f06ab7; --team: #a78bfa; --unk: #fb8a3c; --direct: #ff6b5a; --declared: #7d8799; color-scheme: dark }
+  body { background: var(--bg); color: var(--fg); font-family: var(--font-body); margin: 0; padding-block: 32px 64px; padding-inline: 20px; line-height: 1.6; }
+  .wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 28px; }
+  header h1 { font-size: 26px; margin: 0 0 6px; letter-spacing: -.01em; text-wrap: balance; }
+  header p { margin: 0; color: var(--muted); max-width: 70ch; }
+  .eyebrow { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 700; margin-bottom: 6px; }
+  section h2 { font-size: 17px; margin: 0 0 4px; }
+  section p.sub { margin: 0 0 12px; color: var(--muted); max-width: 80ch; }
+  figure { margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  figure .scroll { overflow-x: auto; }
+  svg { display: block; max-width: 100%; height: auto; font-family: var(--font-body); }
+  svg .mono { font-family: var(--font-mono); }
+  figcaption { color: var(--muted); font-size: 13px; margin-top: 10px; max-width: 90ch; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 820px) { .cols { grid-template-columns: 1fr; } }
+  table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; font-size: 13px; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+  tr:last-child td { border-bottom: 0; }
+  code { font-family: var(--font-mono); font-size: 12px; }
+  .tag { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; color: #fff; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .sw { width: 26px; height: 0; border-top: 2px solid; display: inline-block; }
+  .notes { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; font-size: 13px; }
+  .notes ol { margin: 6px 0 0; padding-left: 20px; }
+  .notes li { margin-bottom: 4px; }
+  footer { color: var(--muted); font-size: 12px; }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Change Intelligence PoC · 説明資料</div>
+    <h1>デモ対象の 4 システムと、それを地図にする PoC の全体像</h1>
+    <p>Customer を中心に、正規の API 利用と非正規の DB 直接参照が混在した「現実の構造」を 1 枚で示します。この構造をそのまま Knowledge Graph に取り込み、変更影響・未特定の利用元・ルール逸脱・鮮度のズレを機械的に答えるのが本 PoC です。</p>
+  </header>
+
+  <section>
+    <h2>1. デモ対象の 4 システム構成図</h2>
+    <p class="sub">外側の箱がシステム、その中がアプリケーション（App）。その内側に、外に提供する窓口（API）と、そのサービスだけが更新するデータベース / テーブル（主要カラム）が入ります。箱をまたぐ線が依存で、線の種類が「正規か・観測されているか」を表します。</p>
+    <figure>
+      <div class="scroll">
+      <svg viewBox="0 0 1200 850" role="img" aria-label="Customer System / Order System / Billing System / Analytics System の 4 システム。各システムの中にアプリケーションがあり、その内側に提供 API とデータベースがある。Order と Billing は Customer API を呼び出す正規ルートを持つが、Billing と Analytics Daily Batch と正体不明の UNKNOWN-001 は API を素通りして customer-db のテーブルを直接参照している。" style="min-width: 900px">
+        <defs>
+          <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker>
+          <marker id="arr-direct" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--direct)"/></marker>
+          <marker id="arr-unk" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--unk)"/></marker>
+          <marker id="arr-decl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--declared)"/></marker>
+        </defs>
+
+        <!-- ================= Customer System ================= -->
+        <rect x="40" y="60" width="340" height="340" rx="12" fill="none" stroke="currentColor" stroke-width="1.6"/>
+        <text x="60" y="88" font-size="17" font-weight="700" fill="currentColor">Customer System</text>
+        <text x="60" y="102" font-size="10.5" fill="var(--muted)">顧客マスタ管理 · 正規 API を提供する中心システム</text>
+        <rect x="286" y="73" width="80" height="18" rx="9" fill="var(--team)"/>
+        <text x="326" y="85.5" font-size="10" font-weight="700" fill="#fff" text-anchor="middle">Customer Team</text>
+        <!-- service -->
+        <rect x="56" y="112" width="308" height="272" rx="10" fill="none" stroke="var(--svc)" stroke-width="1.8"/>
+        <text x="68" y="131" font-size="12.5" font-weight="700" fill="var(--svc)">Customer App</text>
+        <text x="180" y="131" font-size="10" fill="var(--muted)">アプリケーション（API と DB を所有）</text>
+        <!-- api -->
+        <rect x="68" y="140" width="296" height="68" rx="8" fill="var(--api)" fill-opacity=".08" stroke="var(--api)" stroke-width="1.4"/>
+        <text x="80" y="158" font-size="12" font-weight="700" fill="var(--api)">Customer API</text><text x="178" y="158" font-size="10" fill="var(--muted)">提供する窓口</text>
+        <text x="88" y="180" font-size="11" class="mono" fill="currentColor">GET /v1/customers/{id}</text><text x="252" y="180" font-size="10" fill="var(--muted)">顧客取得</text>
+        <text x="88" y="198" font-size="11" class="mono" fill="currentColor">PUT /v1/customers/{id}</text><text x="252" y="198" font-size="10" fill="var(--muted)">顧客更新</text>
+        <circle cx="364" cy="176" r="5.5" fill="var(--api)" stroke="var(--panel)" stroke-width="2"/>
+        <circle cx="364" cy="194" r="5.5" fill="var(--api)" stroke="var(--panel)" stroke-width="2"/>
+        <!-- db -->
+        <rect x="68" y="218" width="296" height="152" rx="8" fill="none" stroke="var(--db)" stroke-width="1.4"/>
+        <text x="80" y="236" font-size="12" font-weight="700" fill="var(--db)">customer-db</text><text x="168" y="236" font-size="10" fill="var(--muted)">PostgreSQL · このアプリだけが更新する</text>
+        <rect x="80" y="246" width="272" height="16" rx="3" fill="var(--tbl)" opacity=".18"/>
+        <text x="88" y="258" font-size="11" font-weight="700" class="mono" fill="var(--tbl)">customer_address</text>
+        <text x="88" y="275" font-size="9.5" class="mono" fill="var(--muted)">customer_id, postal_code, prefecture, city,</text>
+        <text x="88" y="289" font-size="9.5" class="mono" fill="var(--muted)">address1, address2</text>
+        <rect x="80" y="302" width="272" height="16" rx="3" fill="var(--tbl)" opacity=".18"/>
+        <text x="88" y="314" font-size="11" font-weight="700" class="mono" fill="var(--tbl)">customer</text>
+        <text x="88" y="331" font-size="9.5" class="mono" fill="var(--muted)">customer_id, name, email, phone, status,</text>
+        <text x="88" y="345" font-size="9.5" class="mono" fill="var(--muted)">created_at, updated_at</text>
+
+        <!-- ================= Order System ================= -->
+        <rect x="820" y="60" width="340" height="298" rx="12" fill="none" stroke="currentColor" stroke-width="1.6"/>
+        <text x="840" y="88" font-size="17" font-weight="700" fill="currentColor">Order System</text>
+        <text x="840" y="102" font-size="10.5" fill="var(--muted)">注文管理 · Customer API を正規利用</text>
+        <rect x="1078" y="73" width="68" height="18" rx="9" fill="var(--team)"/>
+        <text x="1112" y="85.5" font-size="10" font-weight="700" fill="#fff" text-anchor="middle">Order Team</text>
+        <rect x="836" y="112" width="308" height="230" rx="10" fill="none" stroke="var(--svc)" stroke-width="1.8"/>
+        <text x="848" y="131" font-size="12.5" font-weight="700" fill="var(--svc)">Order App</text>
+        <rect x="848" y="140" width="296" height="50" rx="8" fill="var(--api)" fill-opacity=".08" stroke="var(--api)" stroke-width="1.4"/>
+        <text x="860" y="158" font-size="12" font-weight="700" fill="var(--api)">Order API</text>
+        <text x="868" y="180" font-size="11" class="mono" fill="currentColor">POST /v1/orders</text><text x="1000" y="180" font-size="10" fill="var(--muted)">注文作成</text>
+        <circle cx="1144" cy="176" r="5.5" fill="var(--api)" stroke="var(--panel)" stroke-width="2"/>
+        <rect x="848" y="200" width="296" height="128" rx="8" fill="none" stroke="var(--db)" stroke-width="1.4"/>
+        <text x="860" y="218" font-size="12" font-weight="700" fill="var(--db)">order-db</text><text x="928" y="218" font-size="10" fill="var(--muted)">PostgreSQL</text>
+        <rect x="860" y="228" width="272" height="16" rx="3" fill="var(--tbl)" opacity=".18"/>
+        <text x="868" y="240" font-size="11" font-weight="700" class="mono" fill="var(--tbl)">order</text>
+        <text x="868" y="257" font-size="9.5" class="mono" fill="var(--muted)">order_id, customer_id, ordered_at,</text>
+        <text x="868" y="271" font-size="9.5" class="mono" fill="var(--muted)">total_amount, status</text>
+        <rect x="860" y="284" width="272" height="16" rx="3" fill="var(--tbl)" opacity=".18"/>
+        <text x="868" y="296" font-size="11" font-weight="700" class="mono" fill="var(--tbl)">order_item</text>
+        <text x="868" y="313" font-size="9.5" class="mono" fill="var(--muted)">order_item_id, order_id, sku, quantity, unit_price</text>
+
+        <!-- ================= Billing System ================= -->
+        <rect x="820" y="380" width="340" height="256" rx="12" fill="none" stroke="currentColor" stroke-width="1.6"/>
+        <text x="840" y="408" font-size="17" font-weight="700" fill="currentColor">Billing System</text>
+        <text x="840" y="422" font-size="10.5" fill="var(--muted)">請求管理 · API 利用と DB 直接参照が混在</text>
+        <rect x="1072" y="393" width="74" height="18" rx="9" fill="var(--team)"/>
+        <text x="1109" y="405.5" font-size="10" font-weight="700" fill="#fff" text-anchor="middle">Billing Team</text>
+        <rect x="836" y="432" width="308" height="188" rx="10" fill="none" stroke="var(--svc)" stroke-width="1.8"/>
+        <text x="848" y="451" font-size="12.5" font-weight="700" fill="var(--svc)">Billing App</text>
+        <rect x="848" y="460" width="296" height="50" rx="8" fill="var(--api)" fill-opacity=".08" stroke="var(--api)" stroke-width="1.4"/>
+        <text x="860" y="478" font-size="12" font-weight="700" fill="var(--api)">Billing API</text>
+        <text x="868" y="500" font-size="11" class="mono" fill="currentColor">GET /v1/invoices/{id}</text><text x="1018" y="500" font-size="10" fill="var(--muted)">請求書取得</text>
+        <circle cx="1144" cy="496" r="5.5" fill="var(--api)" stroke="var(--panel)" stroke-width="2"/>
+        <rect x="848" y="520" width="296" height="86" rx="8" fill="none" stroke="var(--db)" stroke-width="1.4"/>
+        <text x="860" y="538" font-size="12" font-weight="700" fill="var(--db)">billing-db</text><text x="936" y="538" font-size="10" fill="var(--muted)">PostgreSQL</text>
+        <rect x="860" y="546" width="272" height="16" rx="3" fill="var(--tbl)" opacity=".18"/>
+        <text x="868" y="558" font-size="11" font-weight="700" class="mono" fill="var(--tbl)">invoice</text>
+        <text x="868" y="575" font-size="9.5" class="mono" fill="var(--muted)">invoice_id, order_id, customer_id, amount,</text>
+        <text x="868" y="589" font-size="9.5" class="mono" fill="var(--muted)">issued_at, due_at, status</text>
+
+        <!-- ================= Analytics System ================= -->
+        <rect x="40" y="510" width="340" height="316" rx="12" fill="none" stroke="currentColor" stroke-width="1.6"/>
+        <text x="60" y="538" font-size="17" font-weight="700" fill="currentColor">Analytics System</text>
+        <text x="60" y="552" font-size="10.5" fill="var(--muted)">分析・レポート · バッチ参照と正体不明の利用元を含む</text>
+        <rect x="276" y="523" width="90" height="18" rx="9" fill="var(--team)"/>
+        <text x="321" y="535.5" font-size="10" font-weight="700" fill="#fff" text-anchor="middle">Analytics Team</text>
+        <!-- daily batch owns analytics-db -->
+        <rect x="56" y="562" width="308" height="146" rx="10" fill="none" stroke="var(--batch)" stroke-width="1.8"/>
+        <text x="68" y="581" font-size="12.5" font-weight="700" fill="var(--batch)">Analytics Daily Batch</text>
+        <text x="68" y="594" font-size="9.5" fill="var(--muted)">毎日 02:00 · customer を COPY して集計（API は提供しない）</text>
+        <rect x="68" y="602" width="296" height="94" rx="8" fill="none" stroke="var(--db)" stroke-width="1.4"/>
+        <text x="80" y="620" font-size="12" font-weight="700" fill="var(--db)">analytics-db</text><text x="168" y="620" font-size="10" fill="var(--muted)">BigQuery</text>
+        <rect x="80" y="630" width="272" height="16" rx="3" fill="var(--tbl)" opacity=".18"/>
+        <text x="88" y="642" font-size="11" font-weight="700" class="mono" fill="var(--tbl)">customer_summary</text>
+        <text x="88" y="659" font-size="9.5" class="mono" fill="var(--muted)">customer_id, order_count, total_amount,</text>
+        <text x="88" y="673" font-size="9.5" class="mono" fill="var(--muted)">last_ordered_at</text>
+        <!-- legacy batch -->
+        <rect x="56" y="718" width="308" height="38" rx="8" fill="none" stroke="var(--batch)" stroke-width="1.4" stroke-dasharray="4 3"/>
+        <text x="68" y="736" font-size="12" font-weight="700" fill="var(--batch)">Analytics Legacy Batch</text>
+        <text x="68" y="749" font-size="9.5" fill="var(--muted)">毎日 03:30 · 台帳に未登録 · 責任チーム未設定（Resolve の正解）</text>
+        <!-- unknown -->
+        <path d="M64 774 L76 766 L344 766 L356 774 L356 804 L344 812 L76 812 L64 804z" fill="none" stroke="var(--unk)" stroke-width="1.8" stroke-dasharray="5 3"/>
+        <text x="88" y="784" font-size="12" font-weight="700" fill="var(--unk)">UNKNOWN-001</text><text x="186" y="784" font-size="9.5" fill="var(--muted)">正体不明の利用元（未特定）</text>
+        <text x="88" y="800" font-size="9.5" class="mono" fill="var(--muted)">rpt_reader @10.20.3.14 · subnet=analytics-legacy · 03:30</text>
+
+        <!-- ================= Cross-system dependencies ================= -->
+        <!-- Order App -> Customer API GET (canonical) -->
+        <line x1="836" y1="176" x2="376" y2="176" stroke="currentColor" stroke-width="1.8" marker-end="url(#arr)"/>
+        <text x="606" y="169" font-size="11" fill="currentColor" text-anchor="middle">呼び出す（正規 · API 仕様書で申告 + ログで観測）</text>
+        <!-- Order App -> Customer API PUT (declared only) -->
+        <line x1="836" y1="194" x2="376" y2="194" stroke="var(--declared)" stroke-width="1.6" stroke-dasharray="2 4" marker-end="url(#arr-decl)"/>
+        <text x="606" y="209" font-size="11" fill="var(--declared)" text-anchor="middle">申告のみ（ログに一度も観測なし → 使われていない申告）</text>
+        <!-- Billing App -> Customer API GET (canonical, observed only) -->
+        <polyline points="836,470 620,470 620,182 376,182" fill="none" stroke="currentColor" stroke-width="1.8" marker-end="url(#arr)"/>
+        <text x="612" y="262" font-size="11" fill="currentColor" text-anchor="end">呼び出す（正規）</text>
+        <text x="612" y="276" font-size="10" fill="var(--muted)" text-anchor="end">ログで観測 · 申告なし</text>
+        <!-- Billing App -> customer table (direct read, bypasses the API boundary) -->
+        <polyline points="836,492 700,492 700,324 376,324" fill="none" stroke="var(--direct)" stroke-width="2.2" stroke-dasharray="7 4" marker-end="url(#arr-direct)"/>
+        <text x="708" y="352" font-size="11" font-weight="700" fill="var(--direct)">直接 READ</text>
+        <text x="708" y="366" font-size="9.5" fill="var(--direct)">API を素通りして DB へ</text>
+        <text x="708" y="380" font-size="9.5" fill="var(--direct)">請求書 PDF 用に SELECT</text>
+        <!-- Analytics Daily Batch -> customer table (direct read, stale) -->
+        <line x1="150" y1="562" x2="150" y2="372" stroke="var(--direct)" stroke-width="2.2" stroke-dasharray="7 4" marker-end="url(#arr-direct)"/>
+        <text x="158" y="442" font-size="11" font-weight="700" fill="var(--direct)">直接 READ（COPY）</text>
+        <text x="158" y="456" font-size="10" fill="var(--direct)">8/20 以降ログに現れない → 廃止候補</text>
+        <!-- UNKNOWN-001 -> customer table (routed outside the Analytics box) -->
+        <polyline points="356,789 400,789 400,340 376,340" fill="none" stroke="var(--unk)" stroke-width="2.2" stroke-dasharray="5 3" marker-end="url(#arr-unk)"/>
+        <text x="408" y="560" font-size="11" font-weight="700" fill="var(--unk)">READ · 毎晩 03:30</text>
+        <text x="408" y="574" font-size="10" fill="var(--unk)">誰のものか分からない</text>
+
+        <!-- callout -->
+        <rect x="440" y="610" width="340" height="200" rx="10" fill="none" stroke="var(--line-strong)" stroke-width="1" stroke-dasharray="3 3"/>
+        <text x="458" y="636" font-size="12" font-weight="700" fill="currentColor">この図から読み取れること</text>
+        <text x="458" y="658" font-size="11" fill="currentColor">・正規の入口は Customer API の 2 本だけ</text>
+        <text x="458" y="678" font-size="11" fill="var(--direct)">・API を素通りして customer-db に届く線が 3 本</text>
+        <text x="458" y="698" font-size="11" fill="currentColor">・うち 1 本は正体不明（UNKNOWN-001）</text>
+        <text x="458" y="718" font-size="11" fill="currentColor">・Legacy Batch は台帳に無く、責任チームも未設定</text>
+        <text x="458" y="738" font-size="11" fill="currentColor">・申告と観測がずれている線が 2 本</text>
+        <text x="458" y="766" font-size="10.5" fill="var(--muted)">customer テーブルを変更すると 4 チームに影響が及ぶが、</text>
+        <text x="458" y="781" font-size="10.5" fill="var(--muted)">「人に聞かないと分からない依存」が 3 本ある状態。</text>
+      </svg>
+      </div>
+      <div class="legend">
+        <span><i class="sw" style="border-color: currentColor"></i>正規の API 呼び出し（CALLS）</span>
+        <span><i class="sw" style="border-color: var(--direct); border-top-style: dashed"></i>DB 直接参照（正規ルート外）</span>
+        <span><i class="sw" style="border-color: var(--unk); border-top-style: dashed"></i>正体不明の利用元からの参照</span>
+        <span><i class="sw" style="border-color: var(--declared); border-top-style: dotted"></i>申告のみ（観測なし）</span>
+        <span><i class="sw" style="border-color: var(--api); border-top-width: 6px; width: 6px; border-radius: 50%"></i>提供インターフェース（API）</span>
+      </div>
+      <figcaption>図 1. デモ用に用意した 4 システム。正しい構造ではアプリの境界を越えるのは API だけだが、現実には API を素通りして内側の DB に届く線（赤・橙）が 3 本ある。テーブルの下に列挙しているのは主要カラム。</figcaption>
+    </figure>
+  </section>
+
+  <section class="cols">
+    <div>
+      <h2>2. 各システムの責務と見せたい関係</h2>
+      <table>
+        <thead><tr><th>システム</th><th>責務 / 構成</th><th>PoC で見せる関係</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Customer System</strong><br><span class="tag" style="background: var(--team)">Customer Team</span></td><td>顧客マスタ管理。Customer App が Customer API（<code>GET/PUT /v1/customers/{id}</code>）と customer-db（customer / customer_address）を所有</td><td>正規 API の提供元。業務データ Customer / Address の実体を持つ中心</td></tr>
+          <tr><td><strong>Order System</strong><br><span class="tag" style="background: var(--team)">Order Team</span></td><td>注文管理。Order App が Order API（<code>POST /v1/orders</code>）と order-db（order / order_item）を所有</td><td>Customer API を正規利用。PUT は申告のみで観測なし（ズレの例）</td></tr>
+          <tr><td><strong>Billing System</strong><br><span class="tag" style="background: var(--team)">Billing Team</span></td><td>請求管理。Billing App が Billing API（<code>GET /v1/invoices/{id}</code>）と billing-db（invoice）を所有</td><td>Customer API を呼びつつ customer テーブルも直接 READ（迂回・警告対象）</td></tr>
+          <tr><td><strong>Analytics System</strong><br><span class="tag" style="background: var(--team)">Analytics Team</span></td><td>分析・レポート。Analytics Daily Batch が analytics-db（customer_summary, BigQuery）を所有。台帳未登録のレガシーバッチも存在</td><td>バッチの直接 READ（8/20 以降観測なし）と、正体不明の UNKNOWN-001（Legacy Batch が正解）</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <h2>3. 業務データ（概念）と実体の対応</h2>
+      <p class="sub">テーブルや API を「何の業務データを扱うものか」で束ねる概念層。正規ルートの判定（この表の API を使わず実体テーブルに触れば迂回）と、新規データ設計レビューの比較軸に使う。</p>
+      <table>
+        <thead><tr><th>業務データ</th><th>実体テーブル</th><th>操作する API</th><th>責任チーム</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Customer</strong></td><td><code>customer.customer</code></td><td>GET / PUT /v1/customers/{id}</td><td>Customer Team</td></tr>
+          <tr><td><strong>Address</strong></td><td><code>customer.customer_address</code></td><td>—</td><td><span style="color: var(--unk); font-weight: 700">未設定</span></td></tr>
+          <tr><td><strong>Order</strong></td><td><code>order.order</code></td><td>POST /v1/orders</td><td>Order Team</td></tr>
+          <tr><td><strong>Invoice</strong></td><td><code>billing.invoice</code></td><td>GET /v1/invoices/{id}</td><td>Billing Team</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>4. PoC 自体の構成</h2>
+    <p class="sub">図 1 の世界を Knowledge Graph として取り込み、質問に答える側のシステム。すべて Docker Compose で起動し、Neo4j に触るのは Backend だけ。</p>
+    <figure>
+      <div class="scroll">
+      <svg viewBox="0 0 1200 300" role="img" aria-label="ブラウザが Next.js に接続し、Next.js が FastAPI に中継し、FastAPI が Neo4j に Bolt で接続する。Ontology と fixture の YAML は seed ジョブが Neo4j に投入する。将来は Collector がログから同じ Neo4j を更新する。" style="min-width: 800px">
+        <defs><marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor"/></marker></defs>
+        <rect x="250" y="24" width="920" height="262" rx="12" fill="none" stroke="var(--line-strong)" stroke-width="1.2" stroke-dasharray="6 4"/>
+        <text x="268" y="46" font-size="11" fill="var(--muted)" font-weight="700">Docker Compose（network: change-intelligence）</text>
+
+        <rect x="40" y="90" width="150" height="70" rx="10" fill="none" stroke="currentColor" stroke-width="1.6"/>
+        <text x="115" y="118" font-size="13" font-weight="700" fill="currentColor" text-anchor="middle">ブラウザ</text>
+        <text x="115" y="136" font-size="10.5" fill="var(--muted)" text-anchor="middle">経営層 / エンジニア</text>
+
+        <rect x="270" y="80" width="250" height="90" rx="10" fill="none" stroke="var(--svc)" stroke-width="1.8"/>
+        <text x="395" y="106" font-size="13" font-weight="700" fill="var(--svc)" text-anchor="middle">Frontend · Next.js 15</text>
+        <text x="395" y="124" font-size="10.5" fill="var(--muted)" text-anchor="middle">ダッシュボード / 全体マップ / 各画面</text>
+        <text x="395" y="140" font-size="10" fill="var(--muted)" text-anchor="middle">Backend へ中継（ブラウザは Next.js とだけ通信）</text>
+        <text x="395" y="158" font-size="10" class="mono" fill="var(--muted)" text-anchor="middle">:3000</text>
+
+        <rect x="590" y="80" width="250" height="90" rx="10" fill="none" stroke="var(--svc)" stroke-width="1.8"/>
+        <text x="715" y="106" font-size="13" font-weight="700" fill="var(--svc)" text-anchor="middle">Backend · FastAPI</text>
+        <text x="715" y="124" font-size="10.5" fill="var(--muted)" text-anchor="middle">変更影響分析 / Unknown の特定 / ルール逸脱</text>
+        <text x="715" y="140" font-size="10.5" fill="var(--muted)" text-anchor="middle">鮮度・ズレ検知 / 新規データ設計レビュー</text>
+        <text x="715" y="158" font-size="10" class="mono" fill="var(--muted)" text-anchor="middle">:8000</text>
+
+        <rect x="930" y="80" width="210" height="90" rx="10" fill="none" stroke="var(--db)" stroke-width="1.8"/>
+        <text x="1035" y="106" font-size="13" font-weight="700" fill="var(--db)" text-anchor="middle">Neo4j 5 Community</text>
+        <text x="1035" y="124" font-size="10.5" fill="var(--muted)" text-anchor="middle">Knowledge Graph（Source of Truth）</text>
+        <text x="1035" y="140" font-size="10.5" fill="var(--muted)" text-anchor="middle">Object / Relation / Evidence</text>
+        <text x="1035" y="158" font-size="10" class="mono" fill="var(--muted)" text-anchor="middle">bolt :7687 · browser :7474</text>
+
+        <line x1="192" y1="125" x2="268" y2="125" stroke="currentColor" stroke-width="1.8" marker-end="url(#arr2)"/>
+        <text x="230" y="117" font-size="10.5" fill="currentColor" text-anchor="middle">HTTP</text>
+        <line x1="522" y1="125" x2="588" y2="125" stroke="currentColor" stroke-width="1.8" marker-end="url(#arr2)"/>
+        <text x="555" y="117" font-size="10.5" fill="currentColor" text-anchor="middle">REST / JSON</text>
+        <line x1="842" y1="125" x2="928" y2="125" stroke="currentColor" stroke-width="1.8" marker-end="url(#arr2)"/>
+        <text x="885" y="117" font-size="10.5" fill="currentColor" text-anchor="middle">Bolt</text>
+
+        <rect x="270" y="206" width="250" height="62" rx="10" fill="none" stroke="var(--tbl)" stroke-width="1.6"/>
+        <text x="395" y="226" font-size="12" font-weight="700" fill="var(--tbl)" text-anchor="middle">Ontology / fixture（YAML, Git 管理）</text>
+        <text x="395" y="243" font-size="9.5" class="mono" fill="var(--muted)" text-anchor="middle">object-types · relation-types · rules</text>
+        <text x="395" y="257" font-size="9.5" class="mono" fill="var(--muted)" text-anchor="middle">objects · relations · evidence</text>
+        <rect x="590" y="206" width="250" height="62" rx="10" fill="none" stroke="var(--batch)" stroke-width="1.6"/>
+        <text x="715" y="229" font-size="12" font-weight="700" fill="var(--batch)" text-anchor="middle">seed（one-shot ジョブ）</text>
+        <text x="715" y="247" font-size="10" fill="var(--muted)" text-anchor="middle">Ontology で検証してから MERGE（冪等）</text>
+        <line x1="522" y1="237" x2="588" y2="237" stroke="currentColor" stroke-width="1.6" marker-end="url(#arr2)"/>
+        <polyline points="842,237 1035,237 1035,172" fill="none" stroke="currentColor" stroke-width="1.6" marker-end="url(#arr2)"/>
+        <text x="940" y="229" font-size="10.5" fill="currentColor" text-anchor="middle">投入（冪等）</text>
+
+        <rect x="40" y="206" width="150" height="62" rx="10" fill="none" stroke="var(--declared)" stroke-width="1.4" stroke-dasharray="4 3"/>
+        <text x="115" y="229" font-size="12" font-weight="700" fill="var(--declared)" text-anchor="middle">Collector（将来）</text>
+        <text x="115" y="247" font-size="10" fill="var(--muted)" text-anchor="middle">各種ログ / OpenAPI / Git</text>
+        <line x1="192" y1="237" x2="268" y2="237" stroke="var(--declared)" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#arr2)"/>
+      </svg>
+      </div>
+      <figcaption>図 2. PoC の構成。現在は fixture（YAML）が観測ログの代わりで、seed ジョブが Neo4j に投入する。将来はログを読む Collector が同じ Graph を自動更新し、Unknown を自動で起票する。</figcaption>
+    </figure>
+  </section>
+
+  <section class="cols">
+    <div class="notes">
+      <h2>5. グラフの語彙</h2>
+      <p class="sub">対象の種類（8）と関係の種類（8）。すべて <code>ontology/*.yaml</code> に定義。</p>
+      <table>
+        <thead><tr><th>種類</th><th>意味</th></tr></thead>
+        <tbody>
+          <tr><td><span class="tag" style="background: var(--team)">担当チーム</span> Team</td><td>責任主体。OWNS で サービス / バッチ / 業務データ に結ぶ</td></tr>
+          <tr><td><span class="tag" style="background: var(--svc)">アプリケーション</span> Service</td><td>業務アプリ（例: Customer App）。API を PROVIDES し、自分の DB を READS / WRITES し、他 API を CALLS する</td></tr>
+          <tr><td><span class="tag" style="background: var(--api)">API</span> API</td><td>正規インターフェース。業務データを OPERATES_ON</td></tr>
+          <tr><td><span class="tag" style="background: #16a34a">業務データ</span> BusinessObject</td><td>概念。テーブルが REPRESENTS する</td></tr>
+          <tr><td><span class="tag" style="background: var(--db)">DB</span> / <span class="tag" style="background: var(--tbl)">テーブル</span></td><td>物理データ。テーブルは主要カラムを属性として持つ</td></tr>
+          <tr><td><span class="tag" style="background: var(--batch)">バッチ処理</span> Batch</td><td>スケジュール実行。READS / WRITES / CALLS</td></tr>
+          <tr><td><span class="tag" style="background: var(--unk)">未特定</span> Unknown</td><td>観測されたが正体不明。消さずに残し、人が Known に特定する</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="notes">
+      <h2>6. この構造で答えられる質問</h2>
+      <ol>
+        <li><strong>customer テーブルを変えたら？</strong> → Billing / Analytics / UNKNOWN-001 が直接、Order は API 経由で間接。相談先は 4 チーム。</li>
+        <li><strong>Customer API を変えたら？</strong> → 呼び出している Order と Billing、提供元の Customer Team。</li>
+        <li><strong>ルールから外れている利用は？</strong> → 赤い線 3 本。Billing は正規 API を使いながら迂回している。</li>
+        <li><strong>UNKNOWN-001 は誰？</strong> → 根拠（rpt_reader、subnet=analytics-legacy、03:30）から Legacy Batch と特定し、履歴を残す。</li>
+        <li><strong>台帳と実態はずれていないか？</strong> → Analytics の直接参照は 8/20 以降観測なし、Order → PUT は申告のみ、Billing の API 利用は申告なし。</li>
+        <li><strong>配送先住所を新しく作るべきか？</strong> → customer_address / Address と重なる。「注文時点の記録」なので新設して Address を参照する案も提示。</li>
+        <li><strong>Get Invoice API は廃止できるか？</strong> → 利用先が無く廃止可。customer テーブルは 5 件の利用先があり廃止不可。</li>
+      </ol>
+      <p style="margin: 10px 0 0; color: var(--muted); font-size: 12px">根拠（Evidence）はすべての線に付く: 出所（DB クエリログ / API ゲートウェイログ / API 仕様書 / 通信ログ）、初回・最終観測日時、確からしさ、申告か観測か。</p>
+    </div>
+  </section>
+
+  <footer>Change Intelligence PoC · 設計書 §2「デモ対象の4システム」と §13「初期 fixture」に対応。この図は fixture（<code>fixtures/*.yaml</code>）の内容を手で描き起こしたもので、アプリ内の全体マップは同じデータから自動生成される。</footer>
+</div>

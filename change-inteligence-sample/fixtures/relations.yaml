@@ -1,0 +1,53 @@
+# Relations. `id` makes seeding idempotent. `access_mode: direct` marks non-canonical DB access.
+relations:
+  # ---- Ownership ----
+  - { id: rel:owns-customer-service,      type: OWNS, from: team:customer,  to: service:customer,      observation_type: declared }
+  - { id: rel:owns-customer-bo,           type: OWNS, from: team:customer,  to: bo:customer,           observation_type: declared }
+  - { id: rel:owns-order-service,         type: OWNS, from: team:order,     to: service:order,         observation_type: declared }
+  - { id: rel:owns-order-bo,              type: OWNS, from: team:order,     to: bo:order,              observation_type: declared }
+  - { id: rel:owns-billing-service,       type: OWNS, from: team:billing,   to: service:billing,       observation_type: declared }
+  - { id: rel:owns-invoice-bo,            type: OWNS, from: team:billing,   to: bo:invoice,            observation_type: declared }
+  - { id: rel:owns-analytics-daily,       type: OWNS, from: team:analytics, to: batch:analytics-daily, observation_type: declared }
+  # NOTE: bo:address and batch:analytics-legacy intentionally have no owner (Governance: owner missing)
+
+  # ---- API provision ----
+  - { id: rel:provides-customer-get,      type: PROVIDES, from: service:customer, to: api:customer-get,        observation_type: declared }
+  - { id: rel:provides-customer-update,   type: PROVIDES, from: service:customer, to: api:customer-update,     observation_type: declared }
+  - { id: rel:provides-order-create,      type: PROVIDES, from: service:order,    to: api:order-create,        observation_type: declared }
+  - { id: rel:provides-billing-invoice,   type: PROVIDES, from: service:billing,  to: api:billing-invoice-get, observation_type: declared }
+
+  # ---- Logical ----
+  - { id: rel:op-customer-get,            type: OPERATES_ON, from: api:customer-get,        to: bo:customer, observation_type: declared }
+  - { id: rel:op-customer-update,         type: OPERATES_ON, from: api:customer-update,     to: bo:customer, observation_type: declared }
+  - { id: rel:op-order-create,            type: OPERATES_ON, from: api:order-create,        to: bo:order,    observation_type: declared }
+  - { id: rel:op-billing-invoice,         type: OPERATES_ON, from: api:billing-invoice-get, to: bo:invoice,  observation_type: declared }
+  - { id: rel:rep-customer,               type: REPRESENTS, from: table:customer.customer,         to: bo:customer, observation_type: declared }
+  - { id: rel:rep-address,                type: REPRESENTS, from: table:customer.customer_address, to: bo:address,  observation_type: declared }
+  - { id: rel:rep-order,                  type: REPRESENTS, from: table:order.order,               to: bo:order,    observation_type: declared }
+  - { id: rel:rep-invoice,                type: REPRESENTS, from: table:billing.invoice,           to: bo:invoice,  observation_type: declared }
+  - { id: rel:dep-order-customer,         type: DEPENDS_ON, from: bo:order,   to: bo:customer, observation_type: declared, note: 注文は顧客を参照する }
+  - { id: rel:dep-invoice-order,          type: DEPENDS_ON, from: bo:invoice, to: bo:order,    observation_type: declared }
+  - { id: rel:dep-address-customer,       type: DEPENDS_ON, from: bo:address, to: bo:customer, observation_type: declared }
+
+  # ---- Owner physical access (canonical) ----
+  - { id: rel:customer-reads-customer,         type: READS,  from: service:customer, to: table:customer.customer,         access_mode: owner, observation_type: observed }
+  - { id: rel:customer-writes-customer,        type: WRITES, from: service:customer, to: table:customer.customer,         access_mode: owner, observation_type: observed }
+  - { id: rel:customer-reads-address,          type: READS,  from: service:customer, to: table:customer.customer_address, access_mode: owner, observation_type: observed }
+  - { id: rel:customer-writes-address,         type: WRITES, from: service:customer, to: table:customer.customer_address, access_mode: owner, observation_type: observed }
+  - { id: rel:order-reads-order,               type: READS,  from: service:order,    to: table:order.order,               access_mode: owner, observation_type: observed }
+  - { id: rel:order-writes-order,              type: WRITES, from: service:order,    to: table:order.order,               access_mode: owner, observation_type: observed }
+  - { id: rel:order-writes-order-item,         type: WRITES, from: service:order,    to: table:order.order_item,          access_mode: owner, observation_type: observed }
+  - { id: rel:billing-reads-invoice,           type: READS,  from: service:billing,  to: table:billing.invoice,           access_mode: owner, observation_type: observed }
+  - { id: rel:billing-writes-invoice,          type: WRITES, from: service:billing,  to: table:billing.invoice,           access_mode: owner, observation_type: observed }
+  - { id: rel:analytics-writes-summary,        type: WRITES, from: batch:analytics-daily, to: table:analytics.customer_summary, access_mode: owner, observation_type: observed }
+
+  # ---- Canonical API usage ----
+  - { id: rel:order-calls-customer-get,        type: CALLS, from: service:order,   to: api:customer-get, observation_type: observed }
+  - { id: rel:billing-calls-customer-get,      type: CALLS, from: service:billing, to: api:customer-get, observation_type: observed }
+  # Declared in Order Service's OpenAPI dependencies but never observed in gateway logs (drift: declared_only)
+  - { id: rel:order-calls-customer-update,     type: CALLS, from: service:order,   to: api:customer-update, observation_type: declared }
+
+  # ---- Non-canonical direct DB access (governance warning) ----
+  - { id: rel:billing-reads-customer-direct,   type: READS, from: service:billing,        to: table:customer.customer, access_mode: direct, observation_type: observed, note: 請求書PDF生成で顧客名/メールを直接SELECT }
+  - { id: rel:analytics-reads-customer-direct, type: READS, from: batch:analytics-daily,  to: table:customer.customer, access_mode: direct, observation_type: observed, note: 日次集計の顧客属性取得 }
+  - { id: rel:unknown001-reads-customer,       type: READS, from: unknown:UNKNOWN-001,    to: table:customer.customer, access_mode: direct, observation_type: observed }

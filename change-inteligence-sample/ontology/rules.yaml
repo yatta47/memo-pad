@@ -1,0 +1,53 @@
+# Governance / Impact rules used by the backend. Deterministic, no LLM required.
+version: 1
+
+impact:
+  # From a node of the given type, which relations are followed and in which direction
+  # ("in" = follow relation arriving at the node, "out" = relation leaving the node).
+  max_depth: 4
+  traversal:
+    Table:
+      - { relation: READS, direction: in }
+      - { relation: WRITES, direction: in }
+      - { relation: REPRESENTS, direction: out }
+    BusinessObject:
+      - { relation: OPERATES_ON, direction: in }
+      - { relation: DEPENDS_ON, direction: in }
+    API:
+      - { relation: CALLS, direction: in }
+      - { relation: PROVIDES, direction: in }
+    Service:
+      - { relation: PROVIDES, direction: out }
+    Batch: []
+    Unknown: []
+    Team: []
+    Database: []
+  # Relation types that count as a "direct" dependency when they are the first hop.
+  direct_relations: [READS, WRITES, CALLS, PROVIDES]
+  # Inbound relations that do not block a delete (ownership; the provider of an API is informational).
+  non_blocking_inbound: [OWNS, PROVIDES]
+  risk:
+    high_if_unknown: true
+    high_if_direct_db_access: true
+    high_if_affected_services_at_least: 3
+    medium_if_affected_at_least: 1
+
+governance:
+  direct_access:
+    property: access_mode
+    value: direct
+    severity_by_source_type:
+      Service: HIGH     # a service bypassing a canonical API
+      Batch: MEDIUM     # batch extraction; consider a replica/export API
+      Unknown: HIGH     # unresolved consumer
+  owner_required_for: [Service, Batch, BusinessObject]
+
+design_review:
+  weights:
+    field_overlap: 0.5
+    name_overlap: 0.3
+    description_overlap: 0.2
+  thresholds:
+    reuse: 0.75
+    extend: 0.35
+  lifecycle_keywords: [時点, 履歴, スナップショット, snapshot, history, archive, 履歴]
